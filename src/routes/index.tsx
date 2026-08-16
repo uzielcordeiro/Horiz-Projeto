@@ -8,23 +8,42 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Agenda financeira dia a dia: registre entradas e acompanhe o saldo da sua linha temporal mês a mês.",
+          "Agenda financeira dia a dia: entradas, saídas, diários, economias, cartão e saldo acumulado mês a mês.",
       },
       { property: "og:title", content: "Saldos — Linha do Tempo Financeira" },
       {
         property: "og:description",
         content:
-          "Agenda financeira dia a dia: registre entradas e acompanhe o saldo da sua linha temporal mês a mês.",
+          "Agenda financeira dia a dia: entradas, saídas, diários, economias, cartão e saldo acumulado mês a mês.",
       },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
   component: Index,
 });
 
-type Entry = { id: string; amount: number; date: string; label: string };
+type Kind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
+
+type Entry = { id: string; amount: number; date: string; label: string; kind: Kind };
 
 const STORAGE_KEY = "timeline-entries-v1";
-const LABELS = ["Salário", "Freela", "Diária", "Trabalho extra", "Outro"];
+
+const KINDS: { key: Kind; title: string; sign: 1 | -1 }[] = [
+  { key: "entradas", title: "entradas", sign: 1 },
+  { key: "saidas", title: "saídas", sign: -1 },
+  { key: "diarios", title: "diários", sign: -1 },
+  { key: "economias", title: "economias", sign: -1 },
+  { key: "cartao", title: "cartão", sign: -1 },
+];
+
+const SUGGESTIONS: Record<Kind, string[]> = {
+  entradas: ["Salário", "Freela", "Diária", "Trabalho extra", "Outro"],
+  saidas: ["Aluguel", "Água", "Luz", "Internet", "Mercado", "Outro"],
+  diarios: ["Alimentação", "Transporte", "Lazer", "Outro"],
+  economias: ["Reserva", "Investimento", "Meta", "Outro"],
+  cartao: ["Fatura", "Parcela", "Compra", "Outro"],
+};
 
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -53,20 +72,32 @@ function parseAmount(input: string) {
   return Number.isFinite(n) ? n : NaN;
 }
 
+const signedTotal = (list: Entry[]) =>
+  list.reduce((sum, e) => {
+    const k = KINDS.find((x) => x.key === e.kind);
+    return sum + (k ? k.sign * e.amount : 0);
+  }, 0);
+
+const GRID = "grid-cols-[56px_repeat(6,minmax(110px,1fr))]";
+
 function Index() {
   const today = new Date();
   const [entries, setEntries] = useState<Entry[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [kind, setKind] = useState<Kind>("entradas");
   const [amount, setAmount] = useState("");
-  const [label, setLabel] = useState<string>(LABELS[0] ?? "Salário");
+  const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) setEntries(JSON.parse(raw) as Entry[]);
+      if (raw) {
+        const parsed = JSON.parse(raw) as Entry[];
+        setEntries(parsed.map((e) => ({ ...e, kind: e.kind ?? "entradas" })));
+      }
     } catch {
       /* ignore */
     }
@@ -82,24 +113,32 @@ function Index() {
   const rows = useMemo(() => {
     const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     const openingDate = iso(cursor.y, cursor.m, 1);
-    let running = sorted
-      .filter((e) => e.date < openingDate)
-      .reduce((sum, e) => sum + e.amount, 0);
-    const opening = running;
+    const opening = signedTotal(sorted.filter((e) => e.date < openingDate));
+    let running = opening;
 
     const list = Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
       const date = iso(cursor.y, cursor.m, day);
       const dayEntries = sorted.filter((e) => e.date === date);
-      const entradas = dayEntries.reduce((sum, e) => sum + e.amount, 0);
-      running += entradas;
-      return { day, date, entradas, balance: running, entries: dayEntries };
+      const totals = {} as Record<Kind, number>;
+      for (const k of KINDS) {
+        totals[k.key] = dayEntries
+          .filter((e) => e.kind === k.key)
+          .reduce((s, e) => s + e.amount, 0);
+      }
+      running += signedTotal(dayEntries);
+      return { day, date, totals, balance: running, entries: dayEntries };
     });
 
     return { list, opening, closing: running };
   }, [entries, cursor, daysInMonth]);
 
-  const monthTotal = rows.list.reduce((s, r) => s + r.entradas, 0);
+  const monthTotals = useMemo(() => {
+    const t = {} as Record<Kind, number>;
+    for (const k of KINDS) t[k.key] = rows.list.reduce((s, r) => s + r.totals[k.key], 0);
+    return t;
+  }, [rows]);
+
   const closingStatus = statusOf(rows.closing);
 
   function shiftMonth(delta: number) {
@@ -125,20 +164,34 @@ function Index() {
         id: crypto.randomUUID(),
         amount: value,
         date: iso(cursor.y, cursor.m, selectedDay),
-        label: label.trim() || "Outro",
+        label: label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
+        kind,
       },
     ]);
     setAmount("");
+    setLabel("");
     setSelectedDay(null);
+  }
+
+  function removeEntry(id: string) {
+    setEntries((prev) => prev.filter((e) => e.id !== id));
   }
 
   const isToday = (day: number) =>
     cursor.y === today.getFullYear() && cursor.m === today.getMonth() && day === today.getDate();
 
+  const kindTone: Record<Kind, string> = {
+    entradas: "text-positive",
+    saidas: "text-negative",
+    diarios: "text-negative",
+    economias: "text-foreground",
+    cartao: "text-negative",
+  };
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-4xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 sm:flex sm:justify-between sm:px-8">
+        <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 sm:flex sm:justify-between sm:px-8">
           <div className="min-w-0">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
               linha do tempo
@@ -167,7 +220,7 @@ function Index() {
         </div>
       </header>
 
-      <main className="mx-auto w-full max-w-4xl space-y-6 px-5 py-8 sm:px-8">
+      <main className="mx-auto w-full max-w-6xl space-y-6 px-5 py-8 sm:px-8">
         <section className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">saldo anterior</p>
@@ -175,142 +228,194 @@ function Index() {
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">entradas do mês</p>
-            <p className="mt-1 text-lg font-semibold text-positive">{brl(monthTotal)}</p>
+            <p className="mt-1 text-lg font-semibold text-positive">{brl(monthTotals.entradas)}</p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">saldo final</p>
-            <p className={`mt-1 flex items-center gap-2 text-lg font-semibold ${saldoCell[closingStatus].split(" ")[1]}`}>
+            <p
+              className={`mt-1 flex items-center gap-2 text-lg font-semibold ${
+                saldoCell[closingStatus].split(" ")[1]
+              }`}
+            >
               <span className={`size-2.5 rounded-full ${dotClass[closingStatus]}`} />
               {brl(rows.closing)}
             </p>
           </div>
         </section>
 
-        <section className="overflow-hidden rounded-2xl border border-border bg-card">
-          <div className="grid grid-cols-[56px_minmax(0,1fr)_minmax(0,1fr)] items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-            <span>dia</span>
-            <span className="text-right">entradas</span>
-            <span className="text-right">saldos</span>
-          </div>
-
-          <div className="divide-y divide-border">
-            {rows.list.map((row) => {
-              const s = statusOf(row.balance);
-              const open = selectedDay === row.day;
-              return (
-                <div key={row.date}>
-                  <button
-                    onClick={() => {
-                      setError(null);
-                      setSelectedDay(open ? null : row.day);
-                    }}
-                    className={`grid w-full grid-cols-[56px_minmax(0,1fr)_minmax(0,1fr)] items-center px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
-                      open ? "bg-accent/60" : ""
-                    }`}
-                  >
-                    <span
-                      className={`grid size-8 place-items-center rounded-lg text-sm font-semibold ${
-                        isToday(row.day)
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground"
-                      }`}
-                    >
-                      {row.day}
-                    </span>
-                    <span
-                      className={`truncate text-right text-sm tabular-nums ${
-                        row.entradas > 0 ? "font-medium text-positive" : "text-muted-foreground/60"
-                      }`}
-                    >
-                      {brl(row.entradas)}
-                    </span>
-                    <span
-                      className={`ml-auto rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
-                    >
-                      {brl(row.balance)}
-                    </span>
-                  </button>
-
-                  {row.entries.length > 0 && (
-                    <ul className="space-y-1 bg-secondary/40 px-3 pb-2.5 pt-0.5">
-                      {row.entries.map((e) => (
-                        <li
-                          key={e.id}
-                          className="flex items-center justify-between gap-3 pl-14 text-sm"
-                        >
-                          <span className="truncate text-muted-foreground">{e.label}</span>
-                          <span className="shrink-0 tabular-nums text-positive">
-                            + {brl(e.amount)}
-                          </span>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-
-                  {open && (
-                    <form
-                      onSubmit={saveEntry}
-                      className="grid gap-3 border-t border-border bg-accent/30 p-4 sm:grid-cols-[1fr_1fr_auto]"
-                    >
-                      <label className="space-y-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">valor</span>
-                        <input
-                          autoFocus
-                          inputMode="decimal"
-                          maxLength={20}
-                          value={amount}
-                          onChange={(ev) => setAmount(ev.target.value)}
-                          placeholder="2.000,00"
-                          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                        />
-                      </label>
-                      <label className="space-y-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">
-                          identificação
-                        </span>
-                        <input
-                          list="labels"
-                          maxLength={40}
-                          value={label}
-                          onChange={(ev) => setLabel(ev.target.value)}
-                          placeholder="Salário"
-                          className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                        />
-                        <datalist id="labels">
-                          {LABELS.map((l) => (
-                            <option key={l} value={l} />
-                          ))}
-                        </datalist>
-                      </label>
-                      <button
-                        type="submit"
-                        className="h-10 self-end rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-                      >
-                        salvar entrada
-                      </button>
-                      {error && (
-                        <span className="text-sm text-negative sm:col-span-3">{error}</span>
-                      )}
-                    </form>
-                  )}
-                </div>
-              );
-            })}
-          </div>
-
-          <div className="grid grid-cols-[56px_minmax(0,1fr)_minmax(0,1fr)] items-center border-t border-border bg-secondary px-3 py-3 text-sm font-semibold">
-            <span className="text-xs uppercase tracking-wide text-muted-foreground">total</span>
-            <span className="text-right tabular-nums text-positive">{brl(monthTotal)}</span>
-            <span
-              className={`ml-auto rounded-lg px-2.5 py-1 text-right tabular-nums ${saldoCell[closingStatus]}`}
+        <section className="overflow-x-auto rounded-2xl border border-border bg-card">
+          <div className="min-w-[760px]">
+            <div
+              className={`grid ${GRID} items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
             >
-              {brl(rows.closing)}
-            </span>
+              <span>dia</span>
+              {KINDS.map((k) => (
+                <span key={k.key} className="text-right">
+                  {k.title}
+                </span>
+              ))}
+              <span className="text-right">saldos</span>
+            </div>
+
+            <div className="divide-y divide-border">
+              {rows.list.map((row) => {
+                const s = statusOf(row.balance);
+                const open = selectedDay === row.day;
+                return (
+                  <div key={row.date}>
+                    <button
+                      onClick={() => {
+                        setError(null);
+                        setSelectedDay(open ? null : row.day);
+                      }}
+                      className={`grid w-full ${GRID} items-center px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
+                        open ? "bg-accent/60" : ""
+                      }`}
+                    >
+                      <span
+                        className={`grid size-8 place-items-center rounded-lg text-sm font-semibold ${
+                          isToday(row.day)
+                            ? "bg-primary text-primary-foreground"
+                            : "text-muted-foreground"
+                        }`}
+                      >
+                        {row.day}
+                      </span>
+                      {KINDS.map((k) => (
+                        <span
+                          key={k.key}
+                          className={`truncate text-right text-sm tabular-nums ${
+                            row.totals[k.key] > 0
+                              ? `font-medium ${kindTone[k.key]}`
+                              : "text-muted-foreground/60"
+                          }`}
+                        >
+                          {brl(row.totals[k.key])}
+                        </span>
+                      ))}
+                      <span
+                        className={`ml-auto rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
+                      >
+                        {brl(row.balance)}
+                      </span>
+                    </button>
+
+                    {row.entries.length > 0 && (
+                      <ul className="space-y-1 bg-secondary/40 px-3 pb-2.5 pt-0.5">
+                        {row.entries.map((e) => {
+                          const k = KINDS.find((x) => x.key === e.kind);
+                          return (
+                            <li
+                              key={e.id}
+                              className="flex items-center justify-between gap-3 pl-14 text-sm"
+                            >
+                              <span className="truncate text-muted-foreground">
+                                {k?.title} · {e.label}
+                              </span>
+                              <span className="flex shrink-0 items-center gap-3">
+                                <span className={`tabular-nums ${kindTone[e.kind]}`}>
+                                  {k?.sign === 1 ? "+" : "−"} {brl(e.amount)}
+                                </span>
+                                <button
+                                  onClick={() => removeEntry(e.id)}
+                                  aria-label="Excluir lançamento"
+                                  className="text-muted-foreground transition-colors hover:text-negative"
+                                >
+                                  ×
+                                </button>
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+
+                    {open && (
+                      <form
+                        onSubmit={saveEntry}
+                        className="grid gap-3 border-t border-border bg-accent/30 p-4 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                      >
+                        <label className="space-y-1.5">
+                          <span className="text-xs font-medium text-muted-foreground">coluna</span>
+                          <select
+                            value={kind}
+                            onChange={(ev) => setKind(ev.target.value as Kind)}
+                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm capitalize text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                          >
+                            {KINDS.map((k) => (
+                              <option key={k.key} value={k.key}>
+                                {k.title}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-xs font-medium text-muted-foreground">valor</span>
+                          <input
+                            autoFocus
+                            inputMode="decimal"
+                            maxLength={20}
+                            value={amount}
+                            onChange={(ev) => setAmount(ev.target.value)}
+                            placeholder="2.000,00"
+                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                          />
+                        </label>
+                        <label className="space-y-1.5">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            identificação
+                          </span>
+                          <input
+                            list={`labels-${kind}`}
+                            maxLength={40}
+                            value={label}
+                            onChange={(ev) => setLabel(ev.target.value)}
+                            placeholder={SUGGESTIONS[kind][0]}
+                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                          />
+                          <datalist id={`labels-${kind}`}>
+                            {SUGGESTIONS[kind].map((l) => (
+                              <option key={l} value={l} />
+                            ))}
+                          </datalist>
+                        </label>
+                        <button
+                          type="submit"
+                          className="h-10 self-end rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+                        >
+                          salvar
+                        </button>
+                        {error && (
+                          <span className="text-sm text-negative sm:col-span-4">{error}</span>
+                        )}
+                      </form>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            <div
+              className={`grid ${GRID} items-center border-t border-border bg-secondary px-3 py-3 text-sm font-semibold`}
+            >
+              <span className="text-xs uppercase tracking-wide text-muted-foreground">total</span>
+              {KINDS.map((k) => (
+                <span key={k.key} className={`text-right tabular-nums ${kindTone[k.key]}`}>
+                  {brl(monthTotals[k.key])}
+                </span>
+              ))}
+              <span
+                className={`ml-auto rounded-lg px-2.5 py-1 text-right tabular-nums ${saldoCell[closingStatus]}`}
+              >
+                {brl(rows.closing)}
+              </span>
+            </div>
           </div>
         </section>
 
         <p className="text-center text-xs text-muted-foreground">
-          toque em um dia para lançar uma entrada
+          toque em um dia para lançar em qualquer coluna · arraste a tabela para o lado para ver
+          todas as colunas
         </p>
       </main>
     </div>
