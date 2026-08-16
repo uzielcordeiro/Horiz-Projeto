@@ -27,8 +27,8 @@ export const isoOf = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${
 const lastDay = (y: number, m: number) => new Date(y, m + 1, 0).getDate();
 
 function parseIso(s: string) {
-  const [y, m, d] = s.split("-").map(Number);
-  return { y, m: (m ?? 1) - 1, d: d ?? 1 };
+  const parts = s.split("-").map(Number);
+  return { y: parts[0] ?? 1970, m: (parts[1] ?? 1) - 1, d: parts[2] ?? 1 };
 }
 
 const MAX_OCCURRENCES = 6000;
