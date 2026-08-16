@@ -36,7 +36,7 @@ const brl = (v: number) =>
 
 const formatDate = (iso: string) => {
   const [y, m, d] = iso.split("-").map(Number);
-  return new Date(y, (m ?? 1) - 1, d).toLocaleDateString("pt-BR", {
+  return new Date(y ?? 1970, (m ?? 1) - 1, d ?? 1).toLocaleDateString("pt-BR", {
     day: "2-digit",
     month: "short",
     year: "numeric",
@@ -80,7 +80,7 @@ function Index() {
   const [loaded, setLoaded] = useState(false);
   const [amount, setAmount] = useState("");
   const [date, setDate] = useState("");
-  const [label, setLabel] = useState(LABELS[0]);
+  const [label, setLabel] = useState<string>(LABELS[0] ?? "Salário");
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -114,7 +114,7 @@ function Index() {
     });
   }, [entries]);
 
-  const total = timeline.length ? timeline[timeline.length - 1].balance : 0;
+  const total = timeline.length ? (timeline[timeline.length - 1]?.balance ?? 0) : 0;
   const status = statusStyles[statusOf(total)];
 
   function handleSubmit(event: React.FormEvent) {
