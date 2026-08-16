@@ -1,5 +1,12 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import {
+  WEEKDAYS,
+  occurrencesInMonth,
+  sumBefore,
+  type Occurrence,
+  type Recurrence,
+} from "@/lib/recurrence";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -8,13 +15,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Agenda financeira dia a dia: entradas, saídas, diários, economias, cartão e saldo acumulado mês a mês.",
+          "Agenda financeira dia a dia: entradas, saídas parceladas ou recorrentes, diários, economias, cartão e saldo acumulado.",
       },
       { property: "og:title", content: "Saldos — Linha do Tempo Financeira" },
       {
         property: "og:description",
         content:
-          "Agenda financeira dia a dia: entradas, saídas, diários, economias, cartão e saldo acumulado mês a mês.",
+          "Agenda financeira dia a dia: entradas, saídas parceladas ou recorrentes, diários, economias, cartão e saldo acumulado.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -28,6 +35,7 @@ type Kind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
 type Entry = { id: string; amount: number; date: string; label: string; kind: Kind };
 
 const STORAGE_KEY = "timeline-entries-v1";
+const REC_KEY = "timeline-recurrences-v1";
 
 const KINDS: { key: Kind; title: string; sign: 1 | -1 }[] = [
   { key: "entradas", title: "entradas", sign: 1 },
@@ -39,7 +47,7 @@ const KINDS: { key: Kind; title: string; sign: 1 | -1 }[] = [
 
 const SUGGESTIONS: Record<Kind, string[]> = {
   entradas: ["Salário", "Freela", "Diária", "Trabalho extra", "Outro"],
-  saidas: ["Aluguel", "Água", "Luz", "Internet", "Mercado", "Outro"],
+  saidas: ["Aluguel", "Água", "Luz", "Internet", "Mercado", "Combustível", "Outro"],
   diarios: ["Alimentação", "Transporte", "Lazer", "Outro"],
   economias: ["Reserva", "Investimento", "Meta", "Outro"],
   cartao: ["Fatura", "Parcela", "Compra", "Outro"],
@@ -80,9 +88,24 @@ const signedTotal = (list: Entry[]) =>
 
 const GRID = "grid-cols-[56px_repeat(6,minmax(110px,1fr))]";
 
+type DayItem = {
+  key: string;
+  kind: Kind;
+  title: string;
+  sign: 1 | -1;
+  amount: number;
+  detail: string;
+  entryId?: string;
+  recurrenceId?: string;
+  date: string;
+};
+
+type Freq = "unico" | "mensal" | "semanal";
+
 function Index() {
   const today = new Date();
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [recurrences, setRecurrences] = useState<Recurrence[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
@@ -91,12 +114,25 @@ function Index() {
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  // campos exclusivos de saídas
+  const [debtName, setDebtName] = useState("");
+  const [freq, setFreq] = useState<Freq>("unico");
+  const [infinite, setInfinite] = useState(false);
+  const [installments, setInstallments] = useState("12");
+  const [daysOfMonth, setDaysOfMonth] = useState<number[]>([]);
+  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as Entry[];
         setEntries(parsed.map((e) => ({ ...e, kind: e.kind ?? "entradas" })));
+      }
+      const rawRec = localStorage.getItem(REC_KEY);
+      if (rawRec) {
+        const parsed = JSON.parse(rawRec) as Recurrence[];
+        setRecurrences(parsed.map((r) => ({ ...r, skipped: r.skipped ?? [] })));
       }
     } catch {
       /* ignore */
@@ -105,33 +141,77 @@ function Index() {
   }, []);
 
   useEffect(() => {
-    if (loaded) localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-  }, [entries, loaded]);
+    if (!loaded) return;
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+    localStorage.setItem(REC_KEY, JSON.stringify(recurrences));
+  }, [entries, recurrences, loaded]);
 
   const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
 
   const rows = useMemo(() => {
     const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     const openingDate = iso(cursor.y, cursor.m, 1);
-    const opening = signedTotal(sorted.filter((e) => e.date < openingDate));
+    const opening =
+      signedTotal(sorted.filter((e) => e.date < openingDate)) -
+      recurrences.reduce((s, r) => s + sumBefore(r, openingDate), 0);
+
+    const byDate = new Map<string, Occurrence[]>();
+    for (const r of recurrences) {
+      for (const o of occurrencesInMonth(r, cursor.y, cursor.m)) {
+        const list = byDate.get(o.date) ?? [];
+        list.push(o);
+        byDate.set(o.date, list);
+      }
+    }
+
     let running = opening;
 
     const list = Array.from({ length: daysInMonth }, (_, i) => {
       const day = i + 1;
       const date = iso(cursor.y, cursor.m, day);
       const dayEntries = sorted.filter((e) => e.date === date);
+      const dayOccurrences = byDate.get(date) ?? [];
+
+      const items: DayItem[] = [
+        ...dayEntries.map((e) => {
+          const k = KINDS.find((x) => x.key === e.kind)!;
+          return {
+            key: e.id,
+            kind: e.kind,
+            title: k.title,
+            sign: k.sign,
+            amount: e.amount,
+            detail: e.label,
+            entryId: e.id,
+            date,
+          } satisfies DayItem;
+        }),
+        ...dayOccurrences.map((o) => ({
+          key: `${o.recurrenceId}-${o.date}`,
+          kind: "saidas" as Kind,
+          title: "saídas",
+          sign: -1 as const,
+          amount: o.amount,
+          detail: `${o.name || o.label}${
+            o.total ? ` · ${o.index}/${o.total}` : " · recorrente"
+          }`,
+          recurrenceId: o.recurrenceId,
+          date: o.date,
+        })),
+      ];
+
       const totals = {} as Record<Kind, number>;
       for (const k of KINDS) {
-        totals[k.key] = dayEntries
-          .filter((e) => e.kind === k.key)
-          .reduce((s, e) => s + e.amount, 0);
+        totals[k.key] = items
+          .filter((it) => it.kind === k.key)
+          .reduce((s, it) => s + it.amount, 0);
       }
-      running += signedTotal(dayEntries);
-      return { day, date, totals, balance: running, entries: dayEntries };
+      running += items.reduce((s, it) => s + it.sign * it.amount, 0);
+      return { day, date, totals, balance: running, items };
     });
 
     return { list, opening, closing: running };
-  }, [entries, cursor, daysInMonth]);
+  }, [entries, recurrences, cursor, daysInMonth]);
 
   const monthTotals = useMemo(() => {
     const t = {} as Record<Kind, number>;
@@ -149,6 +229,21 @@ function Index() {
     });
   }
 
+  function resetForm() {
+    setAmount("");
+    setLabel("");
+    setDebtName("");
+    setFreq("unico");
+    setInfinite(false);
+    setInstallments("12");
+    setDaysOfMonth([]);
+    setDaysOfWeek([]);
+  }
+
+  function toggle(list: number[], value: number, set: (v: number[]) => void) {
+    set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
+  }
+
   function saveEntry(e: React.FormEvent) {
     e.preventDefault();
     if (selectedDay == null) return;
@@ -157,24 +252,77 @@ function Index() {
       setError("Informe um valor maior que zero.");
       return;
     }
+    const date = iso(cursor.y, cursor.m, selectedDay);
+
+    if (kind === "saidas" && freq !== "unico") {
+      const parcelas = infinite ? null : Math.floor(Number(installments));
+      if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
+        setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
+        return;
+      }
+      const dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [selectedDay]) : [];
+      const dow =
+        freq === "semanal"
+          ? daysOfWeek.length
+            ? daysOfWeek
+            : [new Date(cursor.y, cursor.m, selectedDay).getDay()]
+          : [];
+      if (freq === "semanal" && dow.length === 0) {
+        setError("Escolha ao menos um dia da semana.");
+        return;
+      }
+      setError(null);
+      setRecurrences((prev) => [
+        ...prev,
+        {
+          id: crypto.randomUUID(),
+          kind: "saidas",
+          name: debtName.trim() || label.trim() || "Dívida",
+          label: label.trim() || (SUGGESTIONS.saidas[0] ?? "Outro"),
+          amount: value,
+          freq: freq === "mensal" ? "monthly" : "weekly",
+          daysOfMonth: dom,
+          daysOfWeek: dow,
+          startDate: date,
+          installments: parcelas,
+          skipped: [],
+        },
+      ]);
+      resetForm();
+      setSelectedDay(null);
+      return;
+    }
+
     setError(null);
     setEntries((prev) => [
       ...prev,
       {
         id: crypto.randomUUID(),
         amount: value,
-        date: iso(cursor.y, cursor.m, selectedDay),
-        label: label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
+        date,
+        label:
+          kind === "saidas"
+            ? debtName.trim() || label.trim() || (SUGGESTIONS.saidas[0] ?? "Outro")
+            : label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
         kind,
       },
     ]);
-    setAmount("");
-    setLabel("");
+    resetForm();
     setSelectedDay(null);
   }
 
   function removeEntry(id: string) {
     setEntries((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function skipOccurrence(recurrenceId: string, date: string) {
+    setRecurrences((prev) =>
+      prev.map((r) => (r.id === recurrenceId ? { ...r, skipped: [...r.skipped, date] } : r)),
+    );
+  }
+
+  function removeRecurrence(recurrenceId: string) {
+    setRecurrences((prev) => prev.filter((r) => r.id !== recurrenceId));
   }
 
   const isToday = (day: number) =>
@@ -187,6 +335,13 @@ function Index() {
     economias: "text-foreground",
     cartao: "text-negative",
   };
+
+  const chip = (active: boolean) =>
+    `h-8 min-w-8 rounded-lg border px-2 text-xs font-medium transition-colors ${
+      active
+        ? "border-primary bg-primary text-primary-foreground"
+        : "border-input bg-background text-muted-foreground hover:bg-accent"
+    }`;
 
   return (
     <div className="min-h-screen bg-background">
@@ -300,94 +455,211 @@ function Index() {
                       </span>
                     </button>
 
-                    {row.entries.length > 0 && (
+                    {row.items.length > 0 && (
                       <ul className="space-y-1 bg-secondary/40 px-3 pb-2.5 pt-0.5">
-                        {row.entries.map((e) => {
-                          const k = KINDS.find((x) => x.key === e.kind);
-                          return (
-                            <li
-                              key={e.id}
-                              className="flex items-center justify-between gap-3 pl-14 text-sm"
-                            >
-                              <span className="truncate text-muted-foreground">
-                                {k?.title} · {e.label}
+                        {row.items.map((it) => (
+                          <li
+                            key={it.key}
+                            className="flex items-center justify-between gap-3 pl-14 text-sm"
+                          >
+                            <span className="truncate text-muted-foreground">
+                              {it.title} · {it.detail}
+                            </span>
+                            <span className="flex shrink-0 items-center gap-3">
+                              <span className={`tabular-nums ${kindTone[it.kind]}`}>
+                                {it.sign === 1 ? "+" : "−"} {brl(it.amount)}
                               </span>
-                              <span className="flex shrink-0 items-center gap-3">
-                                <span className={`tabular-nums ${kindTone[e.kind]}`}>
-                                  {k?.sign === 1 ? "+" : "−"} {brl(e.amount)}
-                                </span>
+                              {it.entryId ? (
                                 <button
-                                  onClick={() => removeEntry(e.id)}
+                                  onClick={() => removeEntry(it.entryId!)}
                                   aria-label="Excluir lançamento"
                                   className="text-muted-foreground transition-colors hover:text-negative"
                                 >
                                   ×
                                 </button>
-                              </span>
-                            </li>
-                          );
-                        })}
+                              ) : (
+                                <>
+                                  <button
+                                    onClick={() => skipOccurrence(it.recurrenceId!, it.date)}
+                                    className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
+                                  >
+                                    só esta
+                                  </button>
+                                  <button
+                                    onClick={() => removeRecurrence(it.recurrenceId!)}
+                                    className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
+                                  >
+                                    dívida inteira
+                                  </button>
+                                </>
+                              )}
+                            </span>
+                          </li>
+                        ))}
                       </ul>
                     )}
 
                     {open && (
                       <form
                         onSubmit={saveEntry}
-                        className="grid gap-3 border-t border-border bg-accent/30 p-4 sm:grid-cols-[1fr_1fr_1fr_auto]"
+                        className="space-y-4 border-t border-border bg-accent/30 p-4"
                       >
-                        <label className="space-y-1.5">
-                          <span className="text-xs font-medium text-muted-foreground">coluna</span>
-                          <select
-                            value={kind}
-                            onChange={(ev) => setKind(ev.target.value as Kind)}
-                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm capitalize text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              coluna
+                            </span>
+                            <select
+                              value={kind}
+                              onChange={(ev) => setKind(ev.target.value as Kind)}
+                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm capitalize text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                            >
+                              {KINDS.map((k) => (
+                                <option key={k.key} value={k.key}>
+                                  {k.title}
+                                </option>
+                              ))}
+                            </select>
+                          </label>
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {kind === "saidas" && freq !== "unico" ? "valor da parcela" : "valor"}
+                            </span>
+                            <input
+                              autoFocus
+                              inputMode="decimal"
+                              maxLength={20}
+                              value={amount}
+                              onChange={(ev) => setAmount(ev.target.value)}
+                              placeholder="2.000,00"
+                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                            />
+                          </label>
+                          <label className="space-y-1.5">
+                            <span className="text-xs font-medium text-muted-foreground">
+                              {kind === "saidas" ? "categoria" : "identificação"}
+                            </span>
+                            <input
+                              list={`labels-${kind}`}
+                              maxLength={40}
+                              value={label}
+                              onChange={(ev) => setLabel(ev.target.value)}
+                              placeholder={SUGGESTIONS[kind][0]}
+                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                            />
+                            <datalist id={`labels-${kind}`}>
+                              {SUGGESTIONS[kind].map((l) => (
+                                <option key={l} value={l} />
+                              ))}
+                            </datalist>
+                          </label>
+                          <button
+                            type="submit"
+                            className="h-10 self-end rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
                           >
-                            {KINDS.map((k) => (
-                              <option key={k.key} value={k.key}>
-                                {k.title}
-                              </option>
-                            ))}
-                          </select>
-                        </label>
-                        <label className="space-y-1.5">
-                          <span className="text-xs font-medium text-muted-foreground">valor</span>
-                          <input
-                            autoFocus
-                            inputMode="decimal"
-                            maxLength={20}
-                            value={amount}
-                            onChange={(ev) => setAmount(ev.target.value)}
-                            placeholder="2.000,00"
-                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                          />
-                        </label>
-                        <label className="space-y-1.5">
-                          <span className="text-xs font-medium text-muted-foreground">
-                            identificação
-                          </span>
-                          <input
-                            list={`labels-${kind}`}
-                            maxLength={40}
-                            value={label}
-                            onChange={(ev) => setLabel(ev.target.value)}
-                            placeholder={SUGGESTIONS[kind][0]}
-                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                          />
-                          <datalist id={`labels-${kind}`}>
-                            {SUGGESTIONS[kind].map((l) => (
-                              <option key={l} value={l} />
-                            ))}
-                          </datalist>
-                        </label>
-                        <button
-                          type="submit"
-                          className="h-10 self-end rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-                        >
-                          salvar
-                        </button>
-                        {error && (
-                          <span className="text-sm text-negative sm:col-span-4">{error}</span>
+                            salvar
+                          </button>
+                        </div>
+
+                        {kind === "saidas" && (
+                          <div className="space-y-4 rounded-xl border border-border bg-card/60 p-4">
+                            <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
+                              <label className="space-y-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  nome da dívida
+                                </span>
+                                <input
+                                  maxLength={60}
+                                  value={debtName}
+                                  onChange={(ev) => setDebtName(ev.target.value)}
+                                  placeholder="Gasolina — abastecimento do carro"
+                                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                                />
+                              </label>
+                              <label className="space-y-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">
+                                  repetição
+                                </span>
+                                <select
+                                  value={freq}
+                                  onChange={(ev) => setFreq(ev.target.value as Freq)}
+                                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                                >
+                                  <option value="unico">única (só neste dia)</option>
+                                  <option value="mensal">mensal</option>
+                                  <option value="semanal">semanal</option>
+                                </select>
+                              </label>
+                              {freq !== "unico" && (
+                                <label className="space-y-1.5">
+                                  <span className="text-xs font-medium text-muted-foreground">
+                                    parcelas
+                                  </span>
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      inputMode="numeric"
+                                      disabled={infinite}
+                                      value={infinite ? "" : installments}
+                                      onChange={(ev) => setInstallments(ev.target.value)}
+                                      placeholder="12"
+                                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => setInfinite((v) => !v)}
+                                      className={chip(infinite)}
+                                    >
+                                      sem fim
+                                    </button>
+                                  </div>
+                                </label>
+                              )}
+                            </div>
+
+                            {freq === "mensal" && (
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  dias do mês (pode escolher vários — dia 31 cai no último dia do
+                                  mês)
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                                    <button
+                                      key={d}
+                                      type="button"
+                                      onClick={() => toggle(daysOfMonth, d, setDaysOfMonth)}
+                                      className={chip(daysOfMonth.includes(d))}
+                                    >
+                                      {d}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+
+                            {freq === "semanal" && (
+                              <div className="space-y-2">
+                                <p className="text-xs font-medium text-muted-foreground">
+                                  dias da semana (pode escolher vários)
+                                </p>
+                                <div className="flex flex-wrap gap-1.5">
+                                  {WEEKDAYS.map((w) => (
+                                    <button
+                                      key={w.value}
+                                      type="button"
+                                      onClick={() => toggle(daysOfWeek, w.value, setDaysOfWeek)}
+                                      className={chip(daysOfWeek.includes(w.value))}
+                                    >
+                                      {w.short}
+                                    </button>
+                                  ))}
+                                </div>
+                              </div>
+                            )}
+                          </div>
                         )}
+
+                        {error && <p className="text-sm text-negative">{error}</p>}
                       </form>
                     )}
                   </div>
@@ -414,8 +686,9 @@ function Index() {
         </section>
 
         <p className="text-center text-xs text-muted-foreground">
-          toque em um dia para lançar em qualquer coluna · arraste a tabela para o lado para ver
-          todas as colunas
+          toque em um dia para lançar em qualquer coluna · em saídas você pode nomear a dívida,
+          parcelar (12, 48, 360…) ou deixar recorrente sem fim, escolhendo vários dias do mês ou da
+          semana
         </p>
       </main>
     </div>
