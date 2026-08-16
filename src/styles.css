@@ -151,3 +151,38 @@
     color: var(--color-foreground);
   }
 }
+
+:root {
+  --background: oklch(0.985 0.008 150);
+  --foreground: oklch(0.22 0.03 160);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.22 0.03 160);
+  --primary: oklch(0.45 0.11 163);
+  --primary-foreground: oklch(0.985 0.01 150);
+  --secondary: oklch(0.95 0.02 160);
+  --secondary-foreground: oklch(0.3 0.04 160);
+  --muted: oklch(0.955 0.012 160);
+  --muted-foreground: oklch(0.52 0.03 160);
+  --accent: oklch(0.93 0.04 160);
+  --accent-foreground: oklch(0.28 0.05 160);
+  --border: oklch(0.9 0.015 160);
+  --input: oklch(0.9 0.015 160);
+  --ring: oklch(0.55 0.1 163);
+  --radius: 0.9rem;
+
+  --positive: oklch(0.62 0.15 152);
+  --positive-foreground: oklch(0.99 0.01 150);
+  --warning: oklch(0.79 0.15 85);
+  --warning-foreground: oklch(0.28 0.06 85);
+  --negative: oklch(0.6 0.2 25);
+  --negative-foreground: oklch(0.99 0.01 25);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-sans);
+  }
+  h1, h2, h3, .font-display {
+    font-family: var(--font-display);
+  }
+}
