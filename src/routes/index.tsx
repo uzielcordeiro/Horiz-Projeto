@@ -631,8 +631,19 @@ function Index() {
                             key={it.key}
                             className="flex items-center justify-between gap-3 pl-14 text-sm"
                           >
-                            <span className="truncate text-muted-foreground">
-                              {it.title} · {it.detail}
+                            <span className="flex min-w-0 items-center gap-2">
+                              {selectMode && (
+                                <input
+                                  type="checkbox"
+                                  checked={!!selected[it.key]}
+                                  onChange={() => toggleSelect(it)}
+                                  aria-label={`Selecionar ${it.title} ${it.detail}`}
+                                  className="size-4 accent-primary"
+                                />
+                              )}
+                              <span className="truncate text-muted-foreground">
+                                {it.title} · {it.detail}
+                              </span>
                             </span>
                             <span className="flex shrink-0 items-center gap-3">
                               <span className={`tabular-nums ${kindTone[it.kind]}`}>
@@ -655,6 +666,12 @@ function Index() {
                                     só esta
                                   </button>
                                   <button
+                                    onClick={() => endRecurrenceFrom(it.recurrenceId!, it.date)}
+                                    className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
+                                  >
+                                    desta data em diante
+                                  </button>
+                                  <button
                                     onClick={() => removeRecurrence(it.recurrenceId!)}
                                     className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
                                   >
@@ -665,8 +682,19 @@ function Index() {
                             </span>
                           </li>
                         ))}
+                        <li className="flex flex-wrap gap-2 pl-14 pt-1">
+                          {selectMode && (
+                            <button onClick={() => selectMany(row.items)} className={actionBtn}>
+                              marcar o dia
+                            </button>
+                          )}
+                          <button onClick={() => deleteItems(row.items)} className={dangerBtn}>
+                            apagar lançamentos deste dia
+                          </button>
+                        </li>
                       </ul>
                     )}
+
 
                     {open && (
                       <form
