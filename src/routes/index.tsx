@@ -296,8 +296,8 @@ function Index() {
         return;
       }
       setError(null);
-      setRecurrences((prev) => [
-        ...prev,
+      commit(entries, [
+        ...recurrences,
         {
           id: crypto.randomUUID(),
           kind: "saidas",
@@ -309,6 +309,7 @@ function Index() {
           daysOfWeek: dow,
           startDate: date,
           installments: parcelas,
+          endDate: null,
           skipped: [],
         },
       ]);
@@ -318,19 +319,22 @@ function Index() {
     }
 
     setError(null);
-    setEntries((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        amount: value,
-        date,
-        label:
-          kind === "saidas"
-            ? debtName.trim() || label.trim() || (SUGGESTIONS.saidas[0] ?? "Outro")
-            : label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
-        kind,
-      },
-    ]);
+    commit(
+      [
+        ...entries,
+        {
+          id: crypto.randomUUID(),
+          amount: value,
+          date,
+          label:
+            kind === "saidas"
+              ? debtName.trim() || label.trim() || (SUGGESTIONS.saidas[0] ?? "Outro")
+              : label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
+          kind,
+        },
+      ],
+      recurrences,
+    );
     resetForm();
     setSelectedDay(null);
   }
