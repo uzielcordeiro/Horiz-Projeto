@@ -122,6 +122,30 @@ function Index() {
   const [daysOfMonth, setDaysOfMonth] = useState<number[]>([]);
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
 
+  // histórico (desfazer) e seleção múltipla
+  const [history, setHistory] = useState<{ entries: Entry[]; recurrences: Recurrence[] }[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Record<string, DayItem>>({});
+  const [confirmAll, setConfirmAll] = useState(false);
+
+  function commit(nextEntries: Entry[], nextRecurrences: Recurrence[]) {
+    setHistory((h) => [...h.slice(-19), { entries, recurrences }]);
+    setEntries(nextEntries);
+    setRecurrences(nextRecurrences);
+  }
+
+  function undo() {
+    setHistory((h) => {
+      const last = h[h.length - 1];
+      if (!last) return h;
+      setEntries(last.entries);
+      setRecurrences(last.recurrences);
+      setSelected({});
+      return h.slice(0, -1);
+    });
+  }
+
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
@@ -272,8 +296,8 @@ function Index() {
         return;
       }
       setError(null);
-      setRecurrences((prev) => [
-        ...prev,
+      commit(entries, [
+        ...recurrences,
         {
           id: crypto.randomUUID(),
           kind: "saidas",
@@ -285,6 +309,7 @@ function Index() {
           daysOfWeek: dow,
           startDate: date,
           installments: parcelas,
+          endDate: null,
           skipped: [],
         },
       ]);
@@ -294,36 +319,81 @@ function Index() {
     }
 
     setError(null);
-    setEntries((prev) => [
-      ...prev,
-      {
-        id: crypto.randomUUID(),
-        amount: value,
-        date,
-        label:
-          kind === "saidas"
-            ? debtName.trim() || label.trim() || (SUGGESTIONS.saidas[0] ?? "Outro")
-            : label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
-        kind,
-      },
-    ]);
+    commit(
+      [
+        ...entries,
+        {
+          id: crypto.randomUUID(),
+          amount: value,
+          date,
+          label:
+            kind === "saidas"
+              ? debtName.trim() || label.trim() || (SUGGESTIONS.saidas[0] ?? "Outro")
+              : label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
+          kind,
+        },
+      ],
+      recurrences,
+    );
     resetForm();
     setSelectedDay(null);
   }
 
+  function deleteItems(items: DayItem[]) {
+    if (items.length === 0) return;
+    const entryIds = new Set(items.filter((i) => i.entryId).map((i) => i.entryId!));
+    const skips = items.filter((i) => i.recurrenceId);
+    commit(
+      entries.filter((e) => !entryIds.has(e.id)),
+      recurrences.map((r) => {
+        const dates = skips.filter((s) => s.recurrenceId === r.id).map((s) => s.date);
+        return dates.length ? { ...r, skipped: [...r.skipped, ...dates] } : r;
+      }),
+    );
+    setSelected({});
+  }
+
   function removeEntry(id: string) {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
+    commit(
+      entries.filter((e) => e.id !== id),
+      recurrences,
+    );
   }
 
   function skipOccurrence(recurrenceId: string, date: string) {
-    setRecurrences((prev) =>
-      prev.map((r) => (r.id === recurrenceId ? { ...r, skipped: [...r.skipped, date] } : r)),
+    commit(
+      entries,
+      recurrences.map((r) =>
+        r.id === recurrenceId ? { ...r, skipped: [...r.skipped, date] } : r,
+      ),
+    );
+  }
+
+  function endRecurrenceFrom(recurrenceId: string, date: string) {
+    const before = new Date(date);
+    before.setDate(before.getDate() - 1);
+    const end = iso(before.getFullYear(), before.getMonth(), before.getDate());
+    commit(
+      entries,
+      recurrences.flatMap((r) =>
+        r.id !== recurrenceId ? [r] : end < r.startDate ? [] : [{ ...r, endDate: end }],
+      ),
     );
   }
 
   function removeRecurrence(recurrenceId: string) {
-    setRecurrences((prev) => prev.filter((r) => r.id !== recurrenceId));
+    commit(
+      entries,
+      recurrences.filter((r) => r.id !== recurrenceId),
+    );
   }
+
+  function deleteAll() {
+    commit([], []);
+    setSelected({});
+    setConfirmAll(false);
+  }
+
 
   const isToday = (day: number) =>
     cursor.y === today.getFullYear() && cursor.m === today.getMonth() && day === today.getDate();
@@ -342,6 +412,32 @@ function Index() {
         ? "border-primary bg-primary text-primary-foreground"
         : "border-input bg-background text-muted-foreground hover:bg-accent"
     }`;
+
+  const actionBtn =
+    "h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
+  const dangerBtn =
+    "h-8 rounded-lg border border-negative/40 bg-negative/10 px-2.5 text-xs font-semibold text-negative transition-colors hover:bg-negative/20";
+
+  const monthItems = rows.list.flatMap((r) => r.items);
+  const selectedList = Object.values(selected);
+
+  function toggleSelect(item: DayItem) {
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (next[item.key]) delete next[item.key];
+      else next[item.key] = item;
+      return next;
+    });
+  }
+
+  function selectMany(items: DayItem[]) {
+    setSelected((prev) => {
+      const next = { ...prev };
+      for (const it of items) next[it.key] = it;
+      return next;
+    });
+  }
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -397,6 +493,79 @@ function Index() {
             </p>
           </div>
         </section>
+
+        <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">
+          <button
+            onClick={() => {
+              setSelectMode((v) => !v);
+              setSelected({});
+            }}
+            className={chip(selectMode)}
+          >
+            {selectMode ? "sair da seleção" : "selecionar"}
+          </button>
+
+          {selectMode && (
+            <>
+              <button onClick={() => selectMany(monthItems)} className={actionBtn}>
+                marcar todos do mês
+              </button>
+              {KINDS.map((k) => (
+                <button
+                  key={k.key}
+                  onClick={() => selectMany(monthItems.filter((i) => i.kind === k.key))}
+                  className={actionBtn}
+                >
+                  marcar {k.title}
+                </button>
+              ))}
+              <button onClick={() => setSelected({})} className={actionBtn}>
+                limpar seleção
+              </button>
+              <button
+                onClick={() => deleteItems(selectedList)}
+                disabled={selectedList.length === 0}
+                className={`${dangerBtn} disabled:opacity-40`}
+              >
+                apagar selecionados ({selectedList.length})
+              </button>
+            </>
+          )}
+
+          <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
+
+          {KINDS.map((k) => (
+            <button
+              key={k.key}
+              onClick={() => deleteItems(monthItems.filter((i) => i.kind === k.key))}
+              className={actionBtn}
+            >
+              apagar {k.title} do mês
+            </button>
+          ))}
+
+          <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
+
+          <button onClick={undo} disabled={history.length === 0} className={`${actionBtn} disabled:opacity-40`}>
+            ↶ desfazer{history.length ? ` (${history.length})` : ""}
+          </button>
+          {confirmAll ? (
+            <>
+              <button onClick={deleteAll} className={dangerBtn}>
+                confirmar: apagar tudo
+              </button>
+              <button onClick={() => setConfirmAll(false)} className={actionBtn}>
+                cancelar
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setConfirmAll(true)} className={dangerBtn}>
+              apagar tudo
+            </button>
+          )}
+        </section>
+
+
 
         <section className="overflow-x-auto rounded-2xl border border-border bg-card">
           <div className="min-w-[760px]">
@@ -462,8 +631,19 @@ function Index() {
                             key={it.key}
                             className="flex items-center justify-between gap-3 pl-14 text-sm"
                           >
-                            <span className="truncate text-muted-foreground">
-                              {it.title} · {it.detail}
+                            <span className="flex min-w-0 items-center gap-2">
+                              {selectMode && (
+                                <input
+                                  type="checkbox"
+                                  checked={!!selected[it.key]}
+                                  onChange={() => toggleSelect(it)}
+                                  aria-label={`Selecionar ${it.title} ${it.detail}`}
+                                  className="size-4 accent-primary"
+                                />
+                              )}
+                              <span className="truncate text-muted-foreground">
+                                {it.title} · {it.detail}
+                              </span>
                             </span>
                             <span className="flex shrink-0 items-center gap-3">
                               <span className={`tabular-nums ${kindTone[it.kind]}`}>
@@ -486,6 +666,12 @@ function Index() {
                                     só esta
                                   </button>
                                   <button
+                                    onClick={() => endRecurrenceFrom(it.recurrenceId!, it.date)}
+                                    className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
+                                  >
+                                    desta data em diante
+                                  </button>
+                                  <button
                                     onClick={() => removeRecurrence(it.recurrenceId!)}
                                     className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
                                   >
@@ -496,8 +682,19 @@ function Index() {
                             </span>
                           </li>
                         ))}
+                        <li className="flex flex-wrap gap-2 pl-14 pt-1">
+                          {selectMode && (
+                            <button onClick={() => selectMany(row.items)} className={actionBtn}>
+                              marcar o dia
+                            </button>
+                          )}
+                          <button onClick={() => deleteItems(row.items)} className={dangerBtn}>
+                            apagar lançamentos deste dia
+                          </button>
+                        </li>
                       </ul>
                     )}
+
 
                     {open && (
                       <form

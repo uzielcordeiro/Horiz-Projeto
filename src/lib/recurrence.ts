@@ -9,6 +9,7 @@ export type Recurrence = {
   daysOfWeek: number[];
   startDate: string;
   installments: number | null;
+  endDate?: string | null;
   skipped: string[];
 };
 
@@ -42,6 +43,8 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
 
   const push = (date: string) => {
     if (date < rec.startDate) return false;
+    if (rec.endDate && date > rec.endDate) return true; // encerrada
+
     index += 1;
     if (total != null && index > total) return true; // stop
     if (date <= untilDate && !rec.skipped.includes(date)) {
