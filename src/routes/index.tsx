@@ -311,19 +311,61 @@ function Index() {
     setSelectedDay(null);
   }
 
+  function deleteItems(items: DayItem[]) {
+    if (items.length === 0) return;
+    const entryIds = new Set(items.filter((i) => i.entryId).map((i) => i.entryId!));
+    const skips = items.filter((i) => i.recurrenceId);
+    commit(
+      entries.filter((e) => !entryIds.has(e.id)),
+      recurrences.map((r) => {
+        const dates = skips.filter((s) => s.recurrenceId === r.id).map((s) => s.date);
+        return dates.length ? { ...r, skipped: [...r.skipped, ...dates] } : r;
+      }),
+    );
+    setSelected({});
+  }
+
   function removeEntry(id: string) {
-    setEntries((prev) => prev.filter((e) => e.id !== id));
+    commit(
+      entries.filter((e) => e.id !== id),
+      recurrences,
+    );
   }
 
   function skipOccurrence(recurrenceId: string, date: string) {
-    setRecurrences((prev) =>
-      prev.map((r) => (r.id === recurrenceId ? { ...r, skipped: [...r.skipped, date] } : r)),
+    commit(
+      entries,
+      recurrences.map((r) =>
+        r.id === recurrenceId ? { ...r, skipped: [...r.skipped, date] } : r,
+      ),
+    );
+  }
+
+  function endRecurrenceFrom(recurrenceId: string, date: string) {
+    const before = new Date(date);
+    before.setDate(before.getDate() - 1);
+    const end = iso(before.getFullYear(), before.getMonth(), before.getDate());
+    commit(
+      entries,
+      recurrences.flatMap((r) =>
+        r.id !== recurrenceId ? [r] : end < r.startDate ? [] : [{ ...r, endDate: end }],
+      ),
     );
   }
 
   function removeRecurrence(recurrenceId: string) {
-    setRecurrences((prev) => prev.filter((r) => r.id !== recurrenceId));
+    commit(
+      entries,
+      recurrences.filter((r) => r.id !== recurrenceId),
+    );
   }
+
+  function deleteAll() {
+    commit([], []);
+    setSelected({});
+    setConfirmAll(false);
+  }
+
 
   const isToday = (day: number) =>
     cursor.y === today.getFullYear() && cursor.m === today.getMonth() && day === today.getDate();
