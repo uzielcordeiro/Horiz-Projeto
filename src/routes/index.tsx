@@ -122,6 +122,30 @@ function Index() {
   const [daysOfMonth, setDaysOfMonth] = useState<number[]>([]);
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
 
+  // histórico (desfazer) e seleção múltipla
+  const [history, setHistory] = useState<{ entries: Entry[]; recurrences: Recurrence[] }[]>([]);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selected, setSelected] = useState<Record<string, DayItem>>({});
+  const [confirmAll, setConfirmAll] = useState(false);
+
+  function commit(nextEntries: Entry[], nextRecurrences: Recurrence[]) {
+    setHistory((h) => [...h.slice(-19), { entries, recurrences }]);
+    setEntries(nextEntries);
+    setRecurrences(nextRecurrences);
+  }
+
+  function undo() {
+    setHistory((h) => {
+      const last = h[h.length - 1];
+      if (!last) return h;
+      setEntries(last.entries);
+      setRecurrences(last.recurrences);
+      setSelected({});
+      return h.slice(0, -1);
+    });
+  }
+
+
   useEffect(() => {
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
