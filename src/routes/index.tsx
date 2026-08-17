@@ -413,6 +413,32 @@ function Index() {
         : "border-input bg-background text-muted-foreground hover:bg-accent"
     }`;
 
+  const actionBtn =
+    "h-8 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground";
+  const dangerBtn =
+    "h-8 rounded-lg border border-negative/40 bg-negative/10 px-2.5 text-xs font-semibold text-negative transition-colors hover:bg-negative/20";
+
+  const monthItems = rows.list.flatMap((r) => r.items);
+  const selectedList = Object.values(selected);
+
+  function toggleSelect(item: DayItem) {
+    setSelected((prev) => {
+      const next = { ...prev };
+      if (next[item.key]) delete next[item.key];
+      else next[item.key] = item;
+      return next;
+    });
+  }
+
+  function selectMany(items: DayItem[]) {
+    setSelected((prev) => {
+      const next = { ...prev };
+      for (const it of items) next[it.key] = it;
+      return next;
+    });
+  }
+
+
   return (
     <div className="min-h-screen bg-background">
       <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
