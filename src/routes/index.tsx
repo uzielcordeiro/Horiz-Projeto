@@ -494,6 +494,79 @@ function Index() {
           </div>
         </section>
 
+        <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">
+          <button
+            onClick={() => {
+              setSelectMode((v) => !v);
+              setSelected({});
+            }}
+            className={chip(selectMode)}
+          >
+            {selectMode ? "sair da seleção" : "selecionar"}
+          </button>
+
+          {selectMode && (
+            <>
+              <button onClick={() => selectMany(monthItems)} className={actionBtn}>
+                marcar todos do mês
+              </button>
+              {KINDS.map((k) => (
+                <button
+                  key={k.key}
+                  onClick={() => selectMany(monthItems.filter((i) => i.kind === k.key))}
+                  className={actionBtn}
+                >
+                  marcar {k.title}
+                </button>
+              ))}
+              <button onClick={() => setSelected({})} className={actionBtn}>
+                limpar seleção
+              </button>
+              <button
+                onClick={() => deleteItems(selectedList)}
+                disabled={selectedList.length === 0}
+                className={`${dangerBtn} disabled:opacity-40`}
+              >
+                apagar selecionados ({selectedList.length})
+              </button>
+            </>
+          )}
+
+          <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
+
+          {KINDS.map((k) => (
+            <button
+              key={k.key}
+              onClick={() => deleteItems(monthItems.filter((i) => i.kind === k.key))}
+              className={actionBtn}
+            >
+              apagar {k.title} do mês
+            </button>
+          ))}
+
+          <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
+
+          <button onClick={undo} disabled={history.length === 0} className={`${actionBtn} disabled:opacity-40`}>
+            ↶ desfazer{history.length ? ` (${history.length})` : ""}
+          </button>
+          {confirmAll ? (
+            <>
+              <button onClick={deleteAll} className={dangerBtn}>
+                confirmar: apagar tudo
+              </button>
+              <button onClick={() => setConfirmAll(false)} className={actionBtn}>
+                cancelar
+              </button>
+            </>
+          ) : (
+            <button onClick={() => setConfirmAll(true)} className={dangerBtn}>
+              apagar tudo
+            </button>
+          )}
+        </section>
+
+
+
         <section className="overflow-x-auto rounded-2xl border border-border bg-card">
           <div className="min-w-[760px]">
             <div
