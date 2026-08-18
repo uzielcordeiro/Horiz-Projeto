@@ -664,7 +664,8 @@ function Index() {
                     <button
                       onClick={() => {
                         setError(null);
-                        setSelectedDay(open ? null : row.day);
+                        setSelectedDay(row.day);
+                        setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-center px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
                         open ? "bg-accent/60" : ""
