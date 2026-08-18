@@ -463,14 +463,6 @@ function Index() {
   const monthItems = rows.list.flatMap((r) => r.items);
   const selectedList = Object.values(selected);
 
-  function toggleSelect(item: DayItem) {
-    setSelected((prev) => {
-      const next = { ...prev };
-      if (next[item.key]) delete next[item.key];
-      else next[item.key] = item;
-      return next;
-    });
-  }
 
   function selectMany(items: DayItem[]) {
     setSelected((prev) => {
