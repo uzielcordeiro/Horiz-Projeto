@@ -329,11 +329,13 @@ function Index() {
       ]);
       resetForm();
       setSelectedDay(null);
+      scrollTableToStart();
       return;
     }
 
     setError(null);
     commit(
+
       [
         ...entries,
         {
