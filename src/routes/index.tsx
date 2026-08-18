@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
+import { AddModal } from "@/components/AddModal";
 import { DayPanel } from "@/components/DayPanel";
 
 import {
@@ -488,7 +489,18 @@ function Index() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <AppSidebar onAdd={goToday} onToday={goToday} />
+      <AppSidebar
+        onAdd={() => {
+          setError(null);
+          if (selectedDay === null) {
+            const sameMonth =
+              cursor.y === today.getFullYear() && cursor.m === today.getMonth();
+            setSelectedDay(sameMonth ? today.getDate() : 1);
+          }
+          setAdding(true);
+        }}
+        onToday={goToday}
+      />
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
@@ -815,26 +827,52 @@ function Index() {
               </div>
             )}
 
-            {adding && (
-              <form
-                onSubmit={saveEntry}
-                className="space-y-3 rounded-xl border border-border bg-accent/30 p-3"
-              >
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-muted-foreground">coluna</span>
-                  <select
-                    value={kind}
-                    onChange={(ev) => setKind(ev.target.value as Kind)}
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm capitalize text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                  >
-                    {KINDS.map((k) => (
-                      <option key={k.key} value={k.key}>
-                        {k.title}
-                      </option>
-                    ))}
-                  </select>
-                </label>
+          </DayPanel>
+        )}
 
+        {adding && selectedRow && (
+          <AddModal
+            subtitle={`${String(selectedRow.day).padStart(2, "0")}/${new Date(cursor.y, cursor.m, 1)
+              .toLocaleDateString("pt-BR", { month: "short" })
+              .replace(".", "")} · ${cursor.y}`}
+            onClose={() => {
+              setAdding(false);
+              setError(null);
+            }}
+          >
+            <form onSubmit={saveEntry} className="space-y-3">
+              <div className="overflow-hidden rounded-2xl bg-card">
+                <p className="px-4 py-3 text-sm text-muted-foreground">mudar para</p>
+                <div className="divide-y divide-border">
+                  {KINDS.map((k) => (
+                    <button
+                      key={k.key}
+                      type="button"
+                      onClick={() => setKind(k.key)}
+                      className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50"
+                    >
+                      <span
+                        className={`grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${kindBadge[k.key]}`}
+                      >
+                        {k.title[0]!.toUpperCase()}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block truncate text-sm font-semibold text-foreground">
+                          {k.title}
+                        </span>
+                        <span className="block truncate text-xs text-muted-foreground">
+                          {SUGGESTIONS[k.key].slice(0, 3).join(", ").toLowerCase()}
+                        </span>
+                      </span>
+                      <span className="w-4 shrink-0 text-center text-positive">
+                        {kind === k.key ? "✓" : ""}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="space-y-3 rounded-2xl bg-card p-4">
                 <label className="block space-y-1.5">
                   <span className="text-xs font-medium text-muted-foreground">
                     {kind === "saidas" && freq !== "unico" ? "valor da parcela" : "valor"}
@@ -870,7 +908,7 @@ function Index() {
                 </label>
 
                 {kind === "saidas" && (
-                  <div className="space-y-3 rounded-xl border border-border bg-card/60 p-3">
+                  <div className="space-y-3 border-t border-border pt-3">
                     <label className="block space-y-1.5">
                       <span className="text-xs font-medium text-muted-foreground">
                         nome da dívida
@@ -959,18 +997,18 @@ function Index() {
                     )}
                   </div>
                 )}
+              </div>
 
-                {error && <p className="text-sm text-negative">{error}</p>}
+              {error && <p className="px-1 text-sm text-negative">{error}</p>}
 
-                <button
-                  type="submit"
-                  className="h-10 w-full rounded-xl bg-positive px-5 text-sm font-semibold text-positive-foreground transition-opacity hover:opacity-90"
-                >
-                  adicionar {KINDS.find((k) => k.key === kind)!.title}
-                </button>
-              </form>
-            )}
-          </DayPanel>
+              <button
+                type="submit"
+                className="h-12 w-full rounded-2xl bg-positive px-5 text-base font-semibold text-positive-foreground transition-opacity hover:opacity-90"
+              >
+                adicionar {KINDS.find((k) => k.key === kind)!.title}
+              </button>
+            </form>
+          </AddModal>
         )}
         </div>
 
