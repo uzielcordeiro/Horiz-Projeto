@@ -109,6 +109,7 @@ type Freq = "unico" | "mensal" | "semanal";
 function Index() {
   const today = new Date();
   const tableRef = useRef<HTMLElement>(null);
+  const tableHeaderRef = useRef<HTMLDivElement>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [recurrences, setRecurrences] = useState<Recurrence[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -620,12 +621,20 @@ function Index() {
 
 
 
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
-        <section ref={tableRef} className="min-w-0 flex-1 overflow-x-auto rounded-2xl border border-border bg-card">
-
-          <div className="min-w-[760px]">
+        <div className="flex min-w-0 flex-col gap-4 lg:flex-row lg:items-start">
+        <div className="min-w-0 flex-1">
+          <div className="sticky top-[61px] z-20 overflow-hidden rounded-t-2xl border border-b-0 border-border bg-secondary">
             <div
-              className={`grid ${GRID} sticky top-14 z-10 items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
+              ref={tableHeaderRef}
+              className="overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+              onScroll={(event) => {
+                if (tableRef.current && tableRef.current.scrollLeft !== event.currentTarget.scrollLeft) {
+                  tableRef.current.scrollLeft = event.currentTarget.scrollLeft;
+                }
+              }}
+            >
+            <div
+              className={`grid min-w-[760px] ${GRID} items-center px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
             >
               <span>dia</span>
               {KINDS.map((k) => (
@@ -641,6 +650,19 @@ function Index() {
               ))}
               <span className="text-right">saldos</span>
             </div>
+            </div>
+          </div>
+
+          <section
+            ref={tableRef}
+            className="min-w-0 overflow-x-auto rounded-b-2xl border border-border bg-card"
+            onScroll={(event) => {
+              if (tableHeaderRef.current && tableHeaderRef.current.scrollLeft !== event.currentTarget.scrollLeft) {
+                tableHeaderRef.current.scrollLeft = event.currentTarget.scrollLeft;
+              }
+            }}
+          >
+          <div className="min-w-[760px]">
 
             <div className="divide-y divide-border">
               {rows.list.map((row) => {
@@ -708,6 +730,7 @@ function Index() {
             </div>
           </div>
         </section>
+        </div>
 
 
 
