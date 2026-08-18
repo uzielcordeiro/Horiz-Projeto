@@ -346,7 +346,7 @@ function Index() {
         },
       ]);
       resetForm();
-      setSelectedDay(null);
+      setAdding(false);
       scrollTableToStart();
       return;
     }
