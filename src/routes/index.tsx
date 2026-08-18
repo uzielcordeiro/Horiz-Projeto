@@ -274,9 +274,6 @@ function Index() {
   }
 
   const selectedRow = selectedDay == null ? null : rows.list[selectedDay - 1] ?? null;
-  const panelItems: DayItem[] = !selectedRow
-    ? []
-    : selectedRow.items.filter((it) => dayFilter === "todos" || it.kind === dayFilter);
 
 
   function resetForm() {
