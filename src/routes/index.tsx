@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
-import { AddModal } from "@/components/AddModal";
+import { AddWindow } from "@/components/AddWindow";
 import { DayPanel } from "@/components/DayPanel";
 
 import {
@@ -831,7 +831,7 @@ function Index() {
         )}
 
         {adding && selectedRow && (
-          <AddModal
+          <AddWindow
             subtitle={`${String(selectedRow.day).padStart(2, "0")}/${new Date(cursor.y, cursor.m, 1)
               .toLocaleDateString("pt-BR", { month: "short" })
               .replace(".", "")} · ${cursor.y}`}
@@ -1008,7 +1008,7 @@ function Index() {
                 adicionar {KINDS.find((k) => k.key === kind)!.title}
               </button>
             </form>
-          </AddModal>
+          </AddWindow>
         )}
         </div>
 
