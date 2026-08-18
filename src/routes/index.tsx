@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
+import { AppSidebar } from "@/components/AppSidebar";
 import {
   WEEKDAYS,
   occurrencesInMonth,
@@ -251,6 +252,11 @@ function Index() {
       const d = new Date(c.y, c.m + delta, 1);
       return { y: d.getFullYear(), m: d.getMonth() };
     });
+  }
+
+  function goToday() {
+    setCursor({ y: today.getFullYear(), m: today.getMonth() });
+    setSelectedDay(today.getDate());
   }
 
   function resetForm() {
@@ -896,6 +902,7 @@ function Index() {
           semana
         </p>
       </main>
+      </div>
     </div>
   );
 }
