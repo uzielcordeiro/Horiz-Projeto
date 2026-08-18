@@ -106,6 +106,7 @@ type Freq = "unico" | "mensal" | "semanal";
 
 function Index() {
   const today = new Date();
+  const tableRef = useRef<HTMLElement>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [recurrences, setRecurrences] = useState<Recurrence[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -115,6 +116,7 @@ function Index() {
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
+
 
   // campos exclusivos de saídas
   const [debtName, setDebtName] = useState("");
