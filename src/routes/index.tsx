@@ -273,9 +273,14 @@ function Index() {
     setDaysOfWeek([]);
   }
 
+  function scrollTableToStart() {
+    tableRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+  }
+
   function toggle(list: number[], value: number, set: (v: number[]) => void) {
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
+
 
   function saveEntry(e: React.FormEvent) {
     e.preventDefault();
