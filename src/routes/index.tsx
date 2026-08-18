@@ -412,6 +412,14 @@ function Index() {
     cartao: "text-negative",
   };
 
+  const kindBadge: Record<Kind, string> = {
+    entradas: "bg-positive text-positive-foreground",
+    saidas: "bg-negative text-negative-foreground",
+    diarios: "bg-chart-4 text-primary-foreground",
+    economias: "bg-primary text-primary-foreground",
+    cartao: "bg-chart-1 text-primary-foreground",
+  };
+
   const chip = (active: boolean) =>
     `h-8 min-w-8 rounded-lg border px-2 text-xs font-medium transition-colors ${
       active
@@ -588,7 +596,13 @@ function Index() {
             >
               <span>dia</span>
               {KINDS.map((k) => (
-                <span key={k.key} className="text-right">
+                <span key={k.key} className="flex items-center justify-end gap-1.5">
+                  <span
+                    aria-hidden
+                    className={`grid size-4 place-items-center rounded-full text-[9px] font-bold ${kindBadge[k.key]}`}
+                  >
+                    {k.title.charAt(0).toUpperCase()}
+                  </span>
                   {k.title}
                 </span>
               ))}
