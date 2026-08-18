@@ -1,0 +1,102 @@
+import { useState } from "react";
+
+type Item = { key: string; label: string; icon: string; soon?: boolean };
+
+const NAV: Item[] = [
+  { key: "saldos", label: "saldos", icon: "▦" },
+  { key: "totais", label: "totais", icon: "▤", soon: true },
+  { key: "tags", label: "tags", icon: "◫", soon: true },
+  { key: "menu", label: "menu", icon: "≡", soon: true },
+];
+
+export function AppSidebar({
+  onAdd,
+  onToday,
+  active = "saldos",
+}: {
+  onAdd: () => void;
+  onToday: () => void;
+  active?: string;
+}) {
+  const [open, setOpen] = useState(true);
+
+  const row =
+    "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors";
+
+  return (
+    <aside
+      className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 ${
+        open ? "w-52" : "w-16"
+      }`}
+    >
+      <div className="flex h-14 items-center gap-3 px-4">
+        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
+          ₭
+        </span>
+        {open && (
+          <span className="truncate font-display text-sm font-semibold text-foreground">
+            linha do tempo
+          </span>
+        )}
+      </div>
+
+      <nav className="mt-2 space-y-1 px-2">
+        {NAV.map((item) => (
+          <button
+            key={item.key}
+            type="button"
+            disabled={item.soon}
+            title={item.soon ? "em breve" : item.label}
+            className={`${row} ${
+              item.key === active
+                ? "bg-accent text-accent-foreground"
+                : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+            } disabled:cursor-not-allowed disabled:opacity-45`}
+          >
+            <span className="w-4 shrink-0 text-center">{item.icon}</span>
+            {open && <span className="truncate">{item.label}</span>}
+          </button>
+        ))}
+      </nav>
+
+      <div className="mt-6 space-y-1 border-t border-border px-2 pt-4">
+        <button
+          type="button"
+          onClick={onAdd}
+          title="adicionar"
+          className={`${row} text-foreground hover:bg-accent/60`}
+        >
+          <span className="w-4 shrink-0 text-center text-positive">＋</span>
+          {open && <span className="truncate">adicionar</span>}
+        </button>
+        <button
+          type="button"
+          onClick={onToday}
+          title="ir pra hoje"
+          className={`${row} text-muted-foreground hover:bg-accent/60 hover:text-foreground`}
+        >
+          <span className="w-4 shrink-0 text-center">◉</span>
+          {open && <span className="truncate">ir pra hoje</span>}
+        </button>
+        <button
+          type="button"
+          disabled
+          title="em breve"
+          className={`${row} text-muted-foreground disabled:cursor-not-allowed disabled:opacity-45`}
+        >
+          <span className="w-4 shrink-0 text-center">▩</span>
+          {open && <span className="truncate">horizonte</span>}
+        </button>
+      </div>
+
+      <button
+        type="button"
+        onClick={() => setOpen((v) => !v)}
+        aria-label={open ? "recolher menu" : "expandir menu"}
+        className="mt-auto m-3 grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+      >
+        {open ? "‹" : "›"}
+      </button>
+    </aside>
+  );
+}
