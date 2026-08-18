@@ -348,6 +348,7 @@ function Index() {
       ]);
       resetForm();
       setAdding(false);
+      setSelectedDay(null);
       scrollTableToStart();
       return;
     }
@@ -372,6 +373,7 @@ function Index() {
     );
     resetForm();
     setAdding(false);
+    setSelectedDay(null);
     scrollTableToStart();
   }
 
