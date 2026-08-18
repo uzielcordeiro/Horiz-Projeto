@@ -267,6 +267,19 @@ function Index() {
     setSelectedDay(today.getDate());
   }
 
+  function shiftDay(delta: number) {
+    if (selectedDay == null) return;
+    const d = new Date(cursor.y, cursor.m, selectedDay + delta);
+    setCursor({ y: d.getFullYear(), m: d.getMonth() });
+    setSelectedDay(d.getDate());
+  }
+
+  const selectedRow = selectedDay == null ? null : rows.list[selectedDay - 1] ?? null;
+  const panelItems: DayItem[] = !selectedRow
+    ? []
+    : selectedRow.items.filter((it) => dayFilter === "todos" || it.kind === dayFilter);
+
+
   function resetForm() {
     setAmount("");
     setLabel("");
