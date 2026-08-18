@@ -592,7 +592,7 @@ function Index() {
 
 
 
-        <section className="overflow-x-auto rounded-2xl border border-border bg-card">
+        <section ref={tableRef} className="overflow-x-auto rounded-2xl border border-border bg-card">
           <div className="min-w-[760px]">
             <div
               className={`grid ${GRID} items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
