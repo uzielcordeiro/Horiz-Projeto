@@ -625,7 +625,7 @@ function Index() {
 
           <div className="min-w-[760px]">
             <div
-              className={`grid ${GRID} items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
+              className={`grid ${GRID} sticky top-14 z-10 items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
             >
               <span>dia</span>
               {KINDS.map((k) => (
