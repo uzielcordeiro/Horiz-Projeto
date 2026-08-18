@@ -7,7 +7,7 @@ type Props = {
   children: ReactNode;
 };
 
-export function AddModal({ title = "adicionar", subtitle, onClose, children }: Props) {
+export function AddWindow({ title = "adicionar", subtitle, onClose, children }: Props) {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -29,7 +29,7 @@ export function AddModal({ title = "adicionar", subtitle, onClose, children }: P
         role="dialog"
         aria-modal="true"
         aria-label={title}
-        className="relative flex max-h-[85vh] w-full max-w-md flex-col overflow-hidden rounded-3xl border border-border bg-secondary/70 shadow-2xl"
+        className="relative flex max-h-[85vh] w-[92vw] max-w-[360px] flex-col overflow-hidden rounded-3xl border border-border bg-secondary/70 shadow-2xl"
       >
         <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-5 pt-5 pb-3">
           <div className="min-w-0">
