@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+
 import { AppSidebar } from "@/components/AppSidebar";
 import {
   WEEKDAYS,
@@ -105,6 +106,7 @@ type Freq = "unico" | "mensal" | "semanal";
 
 function Index() {
   const today = new Date();
+  const tableRef = useRef<HTMLElement>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
   const [recurrences, setRecurrences] = useState<Recurrence[]>([]);
   const [loaded, setLoaded] = useState(false);
@@ -114,6 +116,7 @@ function Index() {
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
+
 
   // campos exclusivos de saídas
   const [debtName, setDebtName] = useState("");
@@ -270,9 +273,14 @@ function Index() {
     setDaysOfWeek([]);
   }
 
+  function scrollTableToStart() {
+    tableRef.current?.scrollTo({ left: 0, behavior: "smooth" });
+  }
+
   function toggle(list: number[], value: number, set: (v: number[]) => void) {
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
+
 
   function saveEntry(e: React.FormEvent) {
     e.preventDefault();
@@ -321,11 +329,13 @@ function Index() {
       ]);
       resetForm();
       setSelectedDay(null);
+      scrollTableToStart();
       return;
     }
 
     setError(null);
     commit(
+
       [
         ...entries,
         {
@@ -343,7 +353,9 @@ function Index() {
     );
     resetForm();
     setSelectedDay(null);
+    scrollTableToStart();
   }
+
 
   function deleteItems(items: DayItem[]) {
     if (items.length === 0) return;
@@ -589,7 +601,7 @@ function Index() {
 
 
 
-        <section className="overflow-x-auto rounded-2xl border border-border bg-card">
+        <section ref={tableRef} className="overflow-x-auto rounded-2xl border border-border bg-card">
           <div className="min-w-[760px]">
             <div
               className={`grid ${GRID} items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
