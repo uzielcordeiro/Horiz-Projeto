@@ -114,6 +114,9 @@ function Index() {
   const [loaded, setLoaded] = useState(false);
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [dayFilter, setDayFilter] = useState<string>("todos");
+  const [adding, setAdding] = useState(false);
+
   const [kind, setKind] = useState<Kind>("entradas");
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
