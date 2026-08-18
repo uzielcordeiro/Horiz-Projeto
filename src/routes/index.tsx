@@ -370,7 +370,7 @@ function Index() {
       recurrences,
     );
     resetForm();
-    setSelectedDay(null);
+    setAdding(false);
     scrollTableToStart();
   }
 
