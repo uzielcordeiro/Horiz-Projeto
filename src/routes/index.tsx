@@ -601,7 +601,9 @@ function Index() {
 
 
 
-        <section ref={tableRef} className="overflow-x-auto rounded-2xl border border-border bg-card">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <section ref={tableRef} className="min-w-0 flex-1 overflow-x-auto rounded-2xl border border-border bg-card">
+
           <div className="min-w-[760px]">
             <div
               className={`grid ${GRID} items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
