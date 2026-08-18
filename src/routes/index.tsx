@@ -489,7 +489,18 @@ function Index() {
 
   return (
     <div className="flex min-h-screen bg-background">
-      <AppSidebar onAdd={goToday} onToday={goToday} />
+      <AppSidebar
+        onAdd={() => {
+          setError(null);
+          if (selectedDay === null) {
+            const sameMonth =
+              cursor.y === today.getFullYear() && cursor.m === today.getMonth();
+            setSelectedDay(sameMonth ? today.getDate() : 1);
+          }
+          setAdding(true);
+        }}
+        onToday={goToday}
+      />
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
