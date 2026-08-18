@@ -353,7 +353,9 @@ function Index() {
     );
     resetForm();
     setSelectedDay(null);
+    scrollTableToStart();
   }
+
 
   function deleteItems(items: DayItem[]) {
     if (items.length === 0) return;
