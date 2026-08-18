@@ -3,7 +3,6 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
-import { DayPanel } from "@/components/DayPanel";
 
 import {
   WEEKDAYS,
@@ -115,7 +114,6 @@ function Index() {
   const [loaded, setLoaded] = useState(false);
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
-  const [dayFilter, setDayFilter] = useState<string>("todos");
   const [adding, setAdding] = useState(false);
 
   const [kind, setKind] = useState<Kind>("entradas");
@@ -276,9 +274,6 @@ function Index() {
   }
 
   const selectedRow = selectedDay == null ? null : rows.list[selectedDay - 1] ?? null;
-  const panelItems: DayItem[] = !selectedRow
-    ? []
-    : selectedRow.items.filter((it) => dayFilter === "todos" || it.kind === dayFilter);
 
 
   function resetForm() {
@@ -468,14 +463,6 @@ function Index() {
   const monthItems = rows.list.flatMap((r) => r.items);
   const selectedList = Object.values(selected);
 
-  function toggleSelect(item: DayItem) {
-    setSelected((prev) => {
-      const next = { ...prev };
-      if (next[item.key]) delete next[item.key];
-      else next[item.key] = item;
-      return next;
-    });
-  }
 
   function selectMany(items: DayItem[]) {
     setSelected((prev) => {
@@ -664,7 +651,8 @@ function Index() {
                     <button
                       onClick={() => {
                         setError(null);
-                        setSelectedDay(open ? null : row.day);
+                        setSelectedDay(row.day);
+                        setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-center px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
                         open ? "bg-accent/60" : ""
@@ -721,116 +709,8 @@ function Index() {
           </div>
         </section>
 
-        {selectedRow && (
-          <DayPanel
-            title={`${String(selectedRow.day).padStart(2, "0")}/${new Date(cursor.y, cursor.m, 1)
-              .toLocaleDateString("pt-BR", { month: "short" })
-              .replace(".", "")}`}
-            weekday={new Date(cursor.y, cursor.m, selectedRow.day).toLocaleDateString("pt-BR", {
-              weekday: "short",
-            })}
-            filter={dayFilter}
-            filterOptions={KINDS.map((k) => ({ key: k.key, title: k.title }))}
-            onFilter={setDayFilter}
-            onClose={() => {
-              setSelectedDay(null);
-              setAdding(false);
-            }}
-            onPrev={() => shiftDay(-1)}
-            onNext={() => shiftDay(1)}
-            onAdd={() => {
-              setError(null);
-              setAdding((v) => !v);
-            }}
-            adding={adding}
-          >
-            <div className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2 text-sm">
-              <span className="text-muted-foreground">saldo do dia</span>
-              <span
-                className={`rounded-lg px-2 py-0.5 font-semibold tabular-nums ${
-                  saldoCell[statusOf(selectedRow.balance)]
-                }`}
-              >
-                {brl(selectedRow.balance)}
-              </span>
-            </div>
 
-            {panelItems.length === 0 ? (
-              <p className="py-6 text-center text-sm text-muted-foreground">
-                sem movimentações por aqui, toque no + para adicionar
-              </p>
-            ) : (
-              <ul className="space-y-2">
-                {panelItems.map((it) => (
-                  <li key={it.key} className="rounded-xl border border-border bg-background p-2.5">
-                    <div className="flex items-start justify-between gap-2">
-                      <span className="flex min-w-0 items-start gap-2">
-                        {selectMode && (
-                          <input
-                            type="checkbox"
-                            checked={!!selected[it.key]}
-                            onChange={() => toggleSelect(it)}
-                            aria-label={`Selecionar ${it.title} ${it.detail}`}
-                            className="mt-0.5 size-4 accent-primary"
-                          />
-                        )}
-                        <span className="min-w-0">
-                          <span className="block truncate text-sm text-foreground">{it.detail}</span>
-                          <span className="text-xs text-muted-foreground">{it.title}</span>
-                        </span>
-                      </span>
-                      <span className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[it.kind]}`}>
-                        {it.sign === 1 ? "+" : "−"} {brl(it.amount)}
-                      </span>
-                    </div>
-                    <div className="mt-2 flex flex-wrap gap-1.5">
-                      {it.entryId ? (
-                        <button onClick={() => removeEntry(it.entryId!)} className={dangerBtn}>
-                          apagar
-                        </button>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => skipOccurrence(it.recurrenceId!, it.date)}
-                            className={actionBtn}
-                          >
-                            só esta
-                          </button>
-                          <button
-                            onClick={() => endRecurrenceFrom(it.recurrenceId!, it.date)}
-                            className={actionBtn}
-                          >
-                            desta data em diante
-                          </button>
-                          <button
-                            onClick={() => removeRecurrence(it.recurrenceId!)}
-                            className={dangerBtn}
-                          >
-                            dívida inteira
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
 
-            {panelItems.length > 0 && (
-              <div className="flex flex-wrap gap-1.5">
-                {selectMode && (
-                  <button onClick={() => selectMany(panelItems)} className={actionBtn}>
-                    marcar o dia
-                  </button>
-                )}
-                <button onClick={() => deleteItems(panelItems)} className={dangerBtn}>
-                  apagar {dayFilter === "todos" ? "lançamentos do dia" : dayFilter}
-                </button>
-              </div>
-            )}
-
-          </DayPanel>
-        )}
 
         {adding && selectedRow && (
           <AddWindow
