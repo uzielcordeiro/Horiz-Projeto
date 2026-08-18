@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
+import { DayPanel } from "@/components/DayPanel";
+
 import {
   WEEKDAYS,
   occurrencesInMonth,
@@ -112,6 +114,9 @@ function Index() {
   const [loaded, setLoaded] = useState(false);
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
+  const [dayFilter, setDayFilter] = useState<string>("todos");
+  const [adding, setAdding] = useState(false);
+
   const [kind, setKind] = useState<Kind>("entradas");
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
@@ -262,6 +267,19 @@ function Index() {
     setSelectedDay(today.getDate());
   }
 
+  function shiftDay(delta: number) {
+    if (selectedDay == null) return;
+    const d = new Date(cursor.y, cursor.m, selectedDay + delta);
+    setCursor({ y: d.getFullYear(), m: d.getMonth() });
+    setSelectedDay(d.getDate());
+  }
+
+  const selectedRow = selectedDay == null ? null : rows.list[selectedDay - 1] ?? null;
+  const panelItems: DayItem[] = !selectedRow
+    ? []
+    : selectedRow.items.filter((it) => dayFilter === "todos" || it.kind === dayFilter);
+
+
   function resetForm() {
     setAmount("");
     setLabel("");
@@ -328,7 +346,7 @@ function Index() {
         },
       ]);
       resetForm();
-      setSelectedDay(null);
+      setAdding(false);
       scrollTableToStart();
       return;
     }
@@ -352,7 +370,7 @@ function Index() {
       recurrences,
     );
     resetForm();
-    setSelectedDay(null);
+    setAdding(false);
     scrollTableToStart();
   }
 
@@ -601,7 +619,9 @@ function Index() {
 
 
 
-        <section ref={tableRef} className="overflow-x-auto rounded-2xl border border-border bg-card">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start">
+        <section ref={tableRef} className="min-w-0 flex-1 overflow-x-auto rounded-2xl border border-border bg-card">
+
           <div className="min-w-[760px]">
             <div
               className={`grid ${GRID} items-center border-b border-border bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
@@ -664,241 +684,6 @@ function Index() {
                       </span>
                     </button>
 
-                    {row.items.length > 0 && (
-                      <ul className="space-y-1 bg-secondary/40 px-3 pb-2.5 pt-0.5">
-                        {row.items.map((it) => (
-                          <li
-                            key={it.key}
-                            className="flex items-center justify-between gap-3 pl-14 text-sm"
-                          >
-                            <span className="flex min-w-0 items-center gap-2">
-                              {selectMode && (
-                                <input
-                                  type="checkbox"
-                                  checked={!!selected[it.key]}
-                                  onChange={() => toggleSelect(it)}
-                                  aria-label={`Selecionar ${it.title} ${it.detail}`}
-                                  className="size-4 accent-primary"
-                                />
-                              )}
-                              <span className="truncate text-muted-foreground">
-                                {it.title} · {it.detail}
-                              </span>
-                            </span>
-                            <span className="flex shrink-0 items-center gap-3">
-                              <span className={`tabular-nums ${kindTone[it.kind]}`}>
-                                {it.sign === 1 ? "+" : "−"} {brl(it.amount)}
-                              </span>
-                              {it.entryId ? (
-                                <button
-                                  onClick={() => removeEntry(it.entryId!)}
-                                  aria-label="Excluir lançamento"
-                                  className="text-muted-foreground transition-colors hover:text-negative"
-                                >
-                                  ×
-                                </button>
-                              ) : (
-                                <>
-                                  <button
-                                    onClick={() => skipOccurrence(it.recurrenceId!, it.date)}
-                                    className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
-                                  >
-                                    só esta
-                                  </button>
-                                  <button
-                                    onClick={() => endRecurrenceFrom(it.recurrenceId!, it.date)}
-                                    className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
-                                  >
-                                    desta data em diante
-                                  </button>
-                                  <button
-                                    onClick={() => removeRecurrence(it.recurrenceId!)}
-                                    className="text-xs text-muted-foreground underline-offset-2 transition-colors hover:text-negative hover:underline"
-                                  >
-                                    dívida inteira
-                                  </button>
-                                </>
-                              )}
-                            </span>
-                          </li>
-                        ))}
-                        <li className="flex flex-wrap gap-2 pl-14 pt-1">
-                          {selectMode && (
-                            <button onClick={() => selectMany(row.items)} className={actionBtn}>
-                              marcar o dia
-                            </button>
-                          )}
-                          <button onClick={() => deleteItems(row.items)} className={dangerBtn}>
-                            apagar lançamentos deste dia
-                          </button>
-                        </li>
-                      </ul>
-                    )}
-
-
-                    {open && (
-                      <form
-                        onSubmit={saveEntry}
-                        className="space-y-4 border-t border-border bg-accent/30 p-4"
-                      >
-                        <div className="grid gap-3 sm:grid-cols-[1fr_1fr_1fr_auto]">
-                          <label className="space-y-1.5">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              coluna
-                            </span>
-                            <select
-                              value={kind}
-                              onChange={(ev) => setKind(ev.target.value as Kind)}
-                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm capitalize text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                            >
-                              {KINDS.map((k) => (
-                                <option key={k.key} value={k.key}>
-                                  {k.title}
-                                </option>
-                              ))}
-                            </select>
-                          </label>
-                          <label className="space-y-1.5">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {kind === "saidas" && freq !== "unico" ? "valor da parcela" : "valor"}
-                            </span>
-                            <input
-                              autoFocus
-                              inputMode="decimal"
-                              maxLength={20}
-                              value={amount}
-                              onChange={(ev) => setAmount(ev.target.value)}
-                              placeholder="2.000,00"
-                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                            />
-                          </label>
-                          <label className="space-y-1.5">
-                            <span className="text-xs font-medium text-muted-foreground">
-                              {kind === "saidas" ? "categoria" : "identificação"}
-                            </span>
-                            <input
-                              list={`labels-${kind}`}
-                              maxLength={40}
-                              value={label}
-                              onChange={(ev) => setLabel(ev.target.value)}
-                              placeholder={SUGGESTIONS[kind][0]}
-                              className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                            />
-                            <datalist id={`labels-${kind}`}>
-                              {SUGGESTIONS[kind].map((l) => (
-                                <option key={l} value={l} />
-                              ))}
-                            </datalist>
-                          </label>
-                          <button
-                            type="submit"
-                            className="h-10 self-end rounded-xl bg-primary px-5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-                          >
-                            salvar
-                          </button>
-                        </div>
-
-                        {kind === "saidas" && (
-                          <div className="space-y-4 rounded-xl border border-border bg-card/60 p-4">
-                            <div className="grid gap-3 sm:grid-cols-[1.4fr_1fr_1fr]">
-                              <label className="space-y-1.5">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                  nome da dívida
-                                </span>
-                                <input
-                                  maxLength={60}
-                                  value={debtName}
-                                  onChange={(ev) => setDebtName(ev.target.value)}
-                                  placeholder="Gasolina — abastecimento do carro"
-                                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                                />
-                              </label>
-                              <label className="space-y-1.5">
-                                <span className="text-xs font-medium text-muted-foreground">
-                                  repetição
-                                </span>
-                                <select
-                                  value={freq}
-                                  onChange={(ev) => setFreq(ev.target.value as Freq)}
-                                  className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                                >
-                                  <option value="unico">única (só neste dia)</option>
-                                  <option value="mensal">mensal</option>
-                                  <option value="semanal">semanal</option>
-                                </select>
-                              </label>
-                              {freq !== "unico" && (
-                                <label className="space-y-1.5">
-                                  <span className="text-xs font-medium text-muted-foreground">
-                                    parcelas
-                                  </span>
-                                  <div className="flex items-center gap-2">
-                                    <input
-                                      inputMode="numeric"
-                                      disabled={infinite}
-                                      value={infinite ? "" : installments}
-                                      onChange={(ev) => setInstallments(ev.target.value)}
-                                      placeholder="12"
-                                      className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
-                                    />
-                                    <button
-                                      type="button"
-                                      onClick={() => setInfinite((v) => !v)}
-                                      className={chip(infinite)}
-                                    >
-                                      sem fim
-                                    </button>
-                                  </div>
-                                </label>
-                              )}
-                            </div>
-
-                            {freq === "mensal" && (
-                              <div className="space-y-2">
-                                <p className="text-xs font-medium text-muted-foreground">
-                                  dias do mês (pode escolher vários — dia 31 cai no último dia do
-                                  mês)
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                                    <button
-                                      key={d}
-                                      type="button"
-                                      onClick={() => toggle(daysOfMonth, d, setDaysOfMonth)}
-                                      className={chip(daysOfMonth.includes(d))}
-                                    >
-                                      {d}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-
-                            {freq === "semanal" && (
-                              <div className="space-y-2">
-                                <p className="text-xs font-medium text-muted-foreground">
-                                  dias da semana (pode escolher vários)
-                                </p>
-                                <div className="flex flex-wrap gap-1.5">
-                                  {WEEKDAYS.map((w) => (
-                                    <button
-                                      key={w.value}
-                                      type="button"
-                                      onClick={() => toggle(daysOfWeek, w.value, setDaysOfWeek)}
-                                      className={chip(daysOfWeek.includes(w.value))}
-                                    >
-                                      {w.short}
-                                    </button>
-                                  ))}
-                                </div>
-                              </div>
-                            )}
-                          </div>
-                        )}
-
-                        {error && <p className="text-sm text-negative">{error}</p>}
-                      </form>
-                    )}
                   </div>
                 );
               })}
@@ -922,11 +707,278 @@ function Index() {
           </div>
         </section>
 
+        {selectedRow && (
+          <DayPanel
+            title={`${String(selectedRow.day).padStart(2, "0")}/${new Date(cursor.y, cursor.m, 1)
+              .toLocaleDateString("pt-BR", { month: "short" })
+              .replace(".", "")}`}
+            weekday={new Date(cursor.y, cursor.m, selectedRow.day).toLocaleDateString("pt-BR", {
+              weekday: "short",
+            })}
+            filter={dayFilter}
+            filterOptions={KINDS.map((k) => ({ key: k.key, title: k.title }))}
+            onFilter={setDayFilter}
+            onClose={() => {
+              setSelectedDay(null);
+              setAdding(false);
+            }}
+            onPrev={() => shiftDay(-1)}
+            onNext={() => shiftDay(1)}
+            onAdd={() => {
+              setError(null);
+              setAdding((v) => !v);
+            }}
+            adding={adding}
+          >
+            <div className="flex items-center justify-between rounded-xl bg-secondary/60 px-3 py-2 text-sm">
+              <span className="text-muted-foreground">saldo do dia</span>
+              <span
+                className={`rounded-lg px-2 py-0.5 font-semibold tabular-nums ${
+                  saldoCell[statusOf(selectedRow.balance)]
+                }`}
+              >
+                {brl(selectedRow.balance)}
+              </span>
+            </div>
+
+            {panelItems.length === 0 ? (
+              <p className="py-6 text-center text-sm text-muted-foreground">
+                sem movimentações por aqui, toque no + para adicionar
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {panelItems.map((it) => (
+                  <li key={it.key} className="rounded-xl border border-border bg-background p-2.5">
+                    <div className="flex items-start justify-between gap-2">
+                      <span className="flex min-w-0 items-start gap-2">
+                        {selectMode && (
+                          <input
+                            type="checkbox"
+                            checked={!!selected[it.key]}
+                            onChange={() => toggleSelect(it)}
+                            aria-label={`Selecionar ${it.title} ${it.detail}`}
+                            className="mt-0.5 size-4 accent-primary"
+                          />
+                        )}
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm text-foreground">{it.detail}</span>
+                          <span className="text-xs text-muted-foreground">{it.title}</span>
+                        </span>
+                      </span>
+                      <span className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[it.kind]}`}>
+                        {it.sign === 1 ? "+" : "−"} {brl(it.amount)}
+                      </span>
+                    </div>
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {it.entryId ? (
+                        <button onClick={() => removeEntry(it.entryId!)} className={dangerBtn}>
+                          apagar
+                        </button>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => skipOccurrence(it.recurrenceId!, it.date)}
+                            className={actionBtn}
+                          >
+                            só esta
+                          </button>
+                          <button
+                            onClick={() => endRecurrenceFrom(it.recurrenceId!, it.date)}
+                            className={actionBtn}
+                          >
+                            desta data em diante
+                          </button>
+                          <button
+                            onClick={() => removeRecurrence(it.recurrenceId!)}
+                            className={dangerBtn}
+                          >
+                            dívida inteira
+                          </button>
+                        </>
+                      )}
+                    </div>
+                  </li>
+                ))}
+              </ul>
+            )}
+
+            {panelItems.length > 0 && (
+              <div className="flex flex-wrap gap-1.5">
+                {selectMode && (
+                  <button onClick={() => selectMany(panelItems)} className={actionBtn}>
+                    marcar o dia
+                  </button>
+                )}
+                <button onClick={() => deleteItems(panelItems)} className={dangerBtn}>
+                  apagar {dayFilter === "todos" ? "lançamentos do dia" : dayFilter}
+                </button>
+              </div>
+            )}
+
+            {adding && (
+              <form
+                onSubmit={saveEntry}
+                className="space-y-3 rounded-xl border border-border bg-accent/30 p-3"
+              >
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">coluna</span>
+                  <select
+                    value={kind}
+                    onChange={(ev) => setKind(ev.target.value as Kind)}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm capitalize text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  >
+                    {KINDS.map((k) => (
+                      <option key={k.key} value={k.key}>
+                        {k.title}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {kind === "saidas" && freq !== "unico" ? "valor da parcela" : "valor"}
+                  </span>
+                  <input
+                    autoFocus
+                    inputMode="decimal"
+                    maxLength={20}
+                    value={amount}
+                    onChange={(ev) => setAmount(ev.target.value)}
+                    placeholder="2.000,00"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  />
+                </label>
+
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    {kind === "saidas" ? "categoria" : "identificação"}
+                  </span>
+                  <input
+                    list={`labels-${kind}`}
+                    maxLength={40}
+                    value={label}
+                    onChange={(ev) => setLabel(ev.target.value)}
+                    placeholder={SUGGESTIONS[kind][0]}
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  />
+                  <datalist id={`labels-${kind}`}>
+                    {SUGGESTIONS[kind].map((l) => (
+                      <option key={l} value={l} />
+                    ))}
+                  </datalist>
+                </label>
+
+                {kind === "saidas" && (
+                  <div className="space-y-3 rounded-xl border border-border bg-card/60 p-3">
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-medium text-muted-foreground">
+                        nome da dívida
+                      </span>
+                      <input
+                        maxLength={60}
+                        value={debtName}
+                        onChange={(ev) => setDebtName(ev.target.value)}
+                        placeholder="Gasolina — abastecimento do carro"
+                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                      />
+                    </label>
+                    <label className="block space-y-1.5">
+                      <span className="text-xs font-medium text-muted-foreground">repetição</span>
+                      <select
+                        value={freq}
+                        onChange={(ev) => setFreq(ev.target.value as Freq)}
+                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                      >
+                        <option value="unico">única (só neste dia)</option>
+                        <option value="mensal">mensal</option>
+                        <option value="semanal">semanal</option>
+                      </select>
+                    </label>
+                    {freq !== "unico" && (
+                      <label className="block space-y-1.5">
+                        <span className="text-xs font-medium text-muted-foreground">parcelas</span>
+                        <div className="flex items-center gap-2">
+                          <input
+                            inputMode="numeric"
+                            disabled={infinite}
+                            value={infinite ? "" : installments}
+                            onChange={(ev) => setInstallments(ev.target.value)}
+                            placeholder="12"
+                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
+                          />
+                          <button
+                            type="button"
+                            onClick={() => setInfinite((v) => !v)}
+                            className={chip(infinite)}
+                          >
+                            sem fim
+                          </button>
+                        </div>
+                      </label>
+                    )}
+
+                    {freq === "mensal" && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          dias do mês (dia 31 cai no último dia do mês)
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                            <button
+                              key={d}
+                              type="button"
+                              onClick={() => toggle(daysOfMonth, d, setDaysOfMonth)}
+                              className={chip(daysOfMonth.includes(d))}
+                            >
+                              {d}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {freq === "semanal" && (
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium text-muted-foreground">
+                          dias da semana (pode escolher vários)
+                        </p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {WEEKDAYS.map((w) => (
+                            <button
+                              key={w.value}
+                              type="button"
+                              onClick={() => toggle(daysOfWeek, w.value, setDaysOfWeek)}
+                              className={chip(daysOfWeek.includes(w.value))}
+                            >
+                              {w.short}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {error && <p className="text-sm text-negative">{error}</p>}
+
+                <button
+                  type="submit"
+                  className="h-10 w-full rounded-xl bg-positive px-5 text-sm font-semibold text-positive-foreground transition-opacity hover:opacity-90"
+                >
+                  adicionar {KINDS.find((k) => k.key === kind)!.title}
+                </button>
+              </form>
+            )}
+          </DayPanel>
+        )}
+        </div>
+
         <p className="text-center text-xs text-muted-foreground">
-          toque em um dia para lançar em qualquer coluna · em saídas você pode nomear a dívida,
-          parcelar (12, 48, 360…) ou deixar recorrente sem fim, escolhendo vários dias do mês ou da
-          semana
+          toque em um dia para abrir o painel do dia · no + você lança em qualquer coluna e, em
+          saídas, pode nomear a dívida, parcelar (12, 48, 360…) ou deixar recorrente sem fim
         </p>
+
       </main>
       </div>
     </div>
