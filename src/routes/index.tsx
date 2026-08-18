@@ -439,39 +439,47 @@ function Index() {
   }
 
 
-  return (
-    <div className="min-h-screen bg-background">
-      <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
-        <div className="mx-auto grid w-full max-w-6xl grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-4 sm:flex sm:justify-between sm:px-8">
-          <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-[0.18em] text-muted-foreground">
-              linha do tempo
-            </p>
-            <h1 className="truncate text-xl font-semibold text-foreground sm:text-2xl">saldos</h1>
-          </div>
-          <div className="flex shrink-0 items-center gap-1">
-            <button
-              onClick={() => shiftMonth(-1)}
-              aria-label="Mês anterior"
-              className="grid size-9 place-items-center rounded-full border border-border text-foreground transition-colors hover:bg-accent"
-            >
-              ‹
-            </button>
-            <span className="min-w-40 text-center text-sm font-medium capitalize text-foreground">
-              {monthLabel(cursor.y, cursor.m)}
-            </span>
-            <button
-              onClick={() => shiftMonth(1)}
-              aria-label="Próximo mês"
-              className="grid size-9 place-items-center rounded-full border border-border text-foreground transition-colors hover:bg-accent"
-            >
-              ›
-            </button>
-          </div>
-        </div>
-      </header>
+  const navBtn =
+    "grid size-9 shrink-0 place-items-center rounded-full border border-border text-foreground transition-colors hover:bg-accent";
 
-      <main className="mx-auto w-full max-w-6xl space-y-6 px-5 py-8 sm:px-8">
+  return (
+    <div className="flex min-h-screen bg-background">
+      <AppSidebar onAdd={goToday} onToday={goToday} />
+
+      <div className="min-w-0 flex-1">
+        <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 sm:px-8">
+            <h1 className="truncate font-display text-xl font-semibold text-foreground sm:text-2xl">
+              saldos
+            </h1>
+            <div className="flex shrink-0 items-center gap-1">
+              <button onClick={() => shiftMonth(-12)} aria-label="Ano anterior" className={navBtn}>
+                «
+              </button>
+              <button onClick={() => shiftMonth(-1)} aria-label="Mês anterior" className={navBtn}>
+                ‹
+              </button>
+              <span className="min-w-44 rounded-full border border-border px-4 py-1.5 text-center text-sm font-medium capitalize text-foreground">
+                {monthLabel(cursor.y, cursor.m)}
+              </span>
+              <button onClick={() => shiftMonth(1)} aria-label="Próximo mês" className={navBtn}>
+                ›
+              </button>
+              <button onClick={() => shiftMonth(12)} aria-label="Próximo ano" className={navBtn}>
+                »
+              </button>
+              <button
+                onClick={goToday}
+                className="ml-1 h-9 rounded-full border border-border px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+              >
+                hoje
+              </button>
+            </div>
+          </div>
+        </header>
+
+      <main className="w-full space-y-6 px-5 py-6 sm:px-8">
+
         <section className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">saldo anterior</p>
