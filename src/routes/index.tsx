@@ -2,6 +2,8 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
+import { DayPanel } from "@/components/DayPanel";
+
 import {
   WEEKDAYS,
   occurrencesInMonth,
