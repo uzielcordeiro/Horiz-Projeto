@@ -36,7 +36,15 @@ export const Route = createFileRoute("/")({
 
 type Kind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
 
-type Entry = { id: string; amount: number; date: string; label: string; kind: Kind };
+type Entry = {
+  id: string;
+  amount: number;
+  date: string;
+  label: string;
+  kind: Kind;
+  tags?: string[];
+};
+
 
 const STORAGE_KEY = "timeline-entries-v1";
 const REC_KEY = "timeline-recurrences-v1";
