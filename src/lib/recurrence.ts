@@ -56,8 +56,13 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
     if (date <= untilDate && !rec.skipped.includes(date)) {
       out.push({
         recurrenceId: rec.id,
+        kind: rec.kind,
         date,
         amount: rec.amount,
+        name: rec.name,
+        label: rec.label,
+        tags: rec.tags ?? [],
+
         name: rec.name,
         label: rec.label,
         index,
