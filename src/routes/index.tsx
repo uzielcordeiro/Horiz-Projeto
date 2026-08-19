@@ -143,14 +143,23 @@ function Index() {
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
 
+  // data livre do lançamento (passado ou futuro, qualquer ano)
+  const [formDate, setFormDate] = useState(() =>
+    iso(today.getFullYear(), today.getMonth(), today.getDate()),
+  );
 
-  // campos exclusivos de saídas
+  // etiquetas
+  const [tags, setTags] = useState<string[]>([]);
+  const [tagInput, setTagInput] = useState("");
+
+  // repetição / parcelas (disponível em todas as categorias)
   const [debtName, setDebtName] = useState("");
   const [freq, setFreq] = useState<Freq>("unico");
   const [infinite, setInfinite] = useState(false);
   const [installments, setInstallments] = useState("12");
   const [daysOfMonth, setDaysOfMonth] = useState<number[]>([]);
   const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
+
 
   // histórico (desfazer) e seleção múltipla
   const [history, setHistory] = useState<{ entries: Entry[]; recurrences: Recurrence[] }[]>([]);
