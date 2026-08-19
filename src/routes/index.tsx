@@ -249,18 +249,22 @@ function Index() {
             date,
           } satisfies DayItem;
         }),
-        ...dayOccurrences.map((o) => ({
-          key: `${o.recurrenceId}-${o.date}`,
-          kind: "saidas" as Kind,
-          title: "saídas",
-          sign: -1 as const,
-          amount: o.amount,
-          detail: `${o.name || o.label}${
-            o.total ? ` · ${o.index}/${o.total}` : " · recorrente"
-          }`,
-          recurrenceId: o.recurrenceId,
-          date: o.date,
-        })),
+        ...dayOccurrences.map((o) => {
+          const k = KINDS.find((x) => x.key === o.kind) ?? KINDS[1]!;
+          return {
+            key: `${o.recurrenceId}-${o.date}`,
+            kind: k.key,
+            title: k.title,
+            sign: k.sign,
+            amount: o.amount,
+            detail: `${o.name || o.label}${
+              o.total ? ` · ${o.index}/${o.total}` : " · recorrente"
+            }`,
+            recurrenceId: o.recurrenceId,
+            date: o.date,
+          } satisfies DayItem;
+        }),
+
       ];
 
       const totals = {} as Record<Kind, number>;
