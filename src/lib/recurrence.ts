@@ -1,8 +1,11 @@
+export type RecurrenceKind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
+
 export type Recurrence = {
   id: string;
-  kind: "saidas";
+  kind: RecurrenceKind;
   name: string;
   label: string;
+  tags?: string[];
   amount: number;
   freq: "monthly" | "weekly";
   daysOfMonth: number[];
@@ -15,13 +18,16 @@ export type Recurrence = {
 
 export type Occurrence = {
   recurrenceId: string;
+  kind: RecurrenceKind;
   date: string;
   amount: number;
   name: string;
   label: string;
+  tags: string[];
   index: number;
   total: number | null;
 };
+
 
 const pad = (n: number) => String(n).padStart(2, "0");
 export const isoOf = (y: number, m: number, d: number) => `${y}-${pad(m + 1)}-${pad(d)}`;
@@ -50,10 +56,13 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
     if (date <= untilDate && !rec.skipped.includes(date)) {
       out.push({
         recurrenceId: rec.id,
+        kind: rec.kind,
         date,
         amount: rec.amount,
         name: rec.name,
         label: rec.label,
+        tags: rec.tags ?? [],
+
         index,
         total,
       });
