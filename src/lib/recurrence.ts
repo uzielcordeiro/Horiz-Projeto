@@ -63,8 +63,6 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
         label: rec.label,
         tags: rec.tags ?? [],
 
-        name: rec.name,
-        label: rec.label,
         index,
         total,
       });
