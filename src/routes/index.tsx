@@ -65,6 +65,19 @@ const SUGGESTIONS: Record<Kind, string[]> = {
   cartao: ["Fatura", "Parcela", "Compra", "Outro"],
 };
 
+const TAG_SUGGESTIONS = [
+  "fixo",
+  "variável",
+  "extra",
+  "serviço extra",
+  "casa",
+  "carro",
+  "saúde",
+  "lazer",
+  "investimento",
+];
+
+
 const brl = (v: number) =>
   v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
