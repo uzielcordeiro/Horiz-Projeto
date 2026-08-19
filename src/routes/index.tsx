@@ -320,6 +320,8 @@ function Index() {
     setInstallments("12");
     setDaysOfMonth([]);
     setDaysOfWeek([]);
+    setTags([]);
+    setTagInput("");
   }
 
   function scrollTableToStart() {
@@ -330,42 +332,61 @@ function Index() {
     set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
+  function addTag(raw: string) {
+    const t = raw.trim().slice(0, 24);
+    if (!t) return;
+    setTags((prev) => (prev.includes(t) ? prev : [...prev, t]));
+    setTagInput("");
+  }
+
+  function shiftFormDate(days: number) {
+    const p = formDate.split("-").map(Number);
+    const d = new Date(p[0] ?? 1970, (p[1] ?? 1) - 1, (p[2] ?? 1) + days);
+    setFormDate(iso(d.getFullYear(), d.getMonth(), d.getDate()));
+  }
+
+  const formDateParts = useMemo(() => {
+    const p = formDate.split("-").map(Number);
+    return { y: p[0] ?? today.getFullYear(), m: (p[1] ?? 1) - 1, d: p[2] ?? 1 };
+  }, [formDate]);
 
   function saveEntry(e: React.FormEvent) {
     e.preventDefault();
-    if (selectedDay == null) return;
     const value = parseAmount(amount);
     if (!Number.isFinite(value) || value <= 0) {
       setError("Informe um valor maior que zero.");
       return;
     }
-    const date = iso(cursor.y, cursor.m, selectedDay);
+    const date = formDate;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      setError("Escolha uma data válida.");
+      return;
+    }
+    const { y, m, d } = formDateParts;
+    const cleanTags = tags.slice(0, 8);
 
-    if (kind === "saidas" && freq !== "unico") {
+    if (freq !== "unico") {
       const parcelas = infinite ? null : Math.floor(Number(installments));
       if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
         setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
         return;
       }
-      const dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [selectedDay]) : [];
+      const dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [d]) : [];
       const dow =
         freq === "semanal"
           ? daysOfWeek.length
             ? daysOfWeek
-            : [new Date(cursor.y, cursor.m, selectedDay).getDay()]
+            : [new Date(y, m, d).getDay()]
           : [];
-      if (freq === "semanal" && dow.length === 0) {
-        setError("Escolha ao menos um dia da semana.");
-        return;
-      }
       setError(null);
       commit(entries, [
         ...recurrences,
         {
           id: crypto.randomUUID(),
-          kind: "saidas",
-          name: debtName.trim() || label.trim() || "Dívida",
-          label: label.trim() || (SUGGESTIONS.saidas[0] ?? "Outro"),
+          kind,
+          name: debtName.trim() || label.trim() || KINDS.find((k) => k.key === kind)!.title,
+          label: label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
+          tags: cleanTags,
           amount: value,
           freq: freq === "mensal" ? "monthly" : "weekly",
           daysOfMonth: dom,
@@ -379,13 +400,13 @@ function Index() {
       resetForm();
       setAdding(false);
       setSelectedDay(null);
+      setCursor({ y, m });
       scrollTableToStart();
       return;
     }
 
     setError(null);
     commit(
-
       [
         ...entries,
         {
@@ -393,10 +414,9 @@ function Index() {
           amount: value,
           date,
           label:
-            kind === "saidas"
-              ? debtName.trim() || label.trim() || (SUGGESTIONS.saidas[0] ?? "Outro")
-              : label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
+            debtName.trim() || label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
           kind,
+          tags: cleanTags,
         },
       ],
       recurrences,
@@ -404,8 +424,10 @@ function Index() {
     resetForm();
     setAdding(false);
     setSelectedDay(null);
+    setCursor({ y, m });
     scrollTableToStart();
   }
+
 
 
   function deleteItems(items: DayItem[]) {
