@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
+import { MonthCalendar } from "@/components/MonthCalendar";
 
 import {
   WEEKDAYS,
@@ -151,6 +152,7 @@ function Index() {
   // etiquetas
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [showCal, setShowCal] = useState(false);
 
   // repetição / parcelas (disponível em todas as categorias)
   const [debtName, setDebtName] = useState("");
@@ -538,11 +540,11 @@ function Index() {
       <AppSidebar
         onAdd={() => {
           setError(null);
-          if (selectedDay === null) {
-            const sameMonth =
-              cursor.y === today.getFullYear() && cursor.m === today.getMonth();
-            setSelectedDay(sameMonth ? today.getDate() : 1);
-          }
+          setShowCal(false);
+          const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
+          const day = selectedDay ?? (sameMonth ? today.getDate() : 1);
+          setSelectedDay(day);
+          setFormDate(iso(cursor.y, cursor.m, day));
           setAdding(true);
         }}
         onToday={goToday}
@@ -729,7 +731,9 @@ function Index() {
                     <button
                       onClick={() => {
                         setError(null);
+                        setShowCal(false);
                         setSelectedDay(row.day);
+                        setFormDate(row.date);
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-center px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
