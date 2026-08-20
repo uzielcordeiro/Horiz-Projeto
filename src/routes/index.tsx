@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
+import { MonthCalendar } from "@/components/MonthCalendar";
 
 import {
   WEEKDAYS,
@@ -151,6 +152,7 @@ function Index() {
   // etiquetas
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [showCal, setShowCal] = useState(false);
 
   // repetição / parcelas (disponível em todas as categorias)
   const [debtName, setDebtName] = useState("");
@@ -538,11 +540,11 @@ function Index() {
       <AppSidebar
         onAdd={() => {
           setError(null);
-          if (selectedDay === null) {
-            const sameMonth =
-              cursor.y === today.getFullYear() && cursor.m === today.getMonth();
-            setSelectedDay(sameMonth ? today.getDate() : 1);
-          }
+          setShowCal(false);
+          const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
+          const day = selectedDay ?? (sameMonth ? today.getDate() : 1);
+          setSelectedDay(day);
+          setFormDate(iso(cursor.y, cursor.m, day));
           setAdding(true);
         }}
         onToday={goToday}
@@ -729,7 +731,9 @@ function Index() {
                     <button
                       onClick={() => {
                         setError(null);
+                        setShowCal(false);
                         setSelectedDay(row.day);
+                        setFormDate(row.date);
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-center px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
@@ -791,68 +795,56 @@ function Index() {
 
 
 
-        {adding && selectedRow && (
+        {adding && (
           <AddWindow
-            subtitle={`${String(selectedRow.day).padStart(2, "0")}/${new Date(cursor.y, cursor.m, 1)
-              .toLocaleDateString("pt-BR", { month: "short" })
-              .replace(".", "")} · ${cursor.y}`}
+            subtitle={new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
+              "pt-BR",
+              { day: "2-digit", month: "long", year: "numeric" },
+            )}
             onClose={() => {
               setAdding(false);
               setError(null);
+              setShowCal(false);
             }}
           >
             <form onSubmit={saveEntry} className="space-y-3">
-              <div className="overflow-hidden rounded-2xl bg-card">
-                <p className="px-4 py-3 text-sm text-muted-foreground">mudar para</p>
-                <div className="divide-y divide-border">
+              {/* valor */}
+              <div className="rounded-2xl bg-card p-4">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {freq !== "unico" ? "valor da parcela" : "valor"}
+                </span>
+                <input
+                  autoFocus
+                  inputMode="decimal"
+                  maxLength={20}
+                  value={amount}
+                  onChange={(ev) => setAmount(ev.target.value)}
+                  placeholder="0,00"
+                  className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 font-display text-2xl font-bold tabular-nums text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                />
+              </div>
+
+              {/* categoria */}
+              <div className="rounded-2xl bg-card p-4">
+                <span className="text-xs font-medium text-muted-foreground">categoria</span>
+                <div className="mt-2 flex flex-wrap gap-1.5">
                   {KINDS.map((k) => (
                     <button
                       key={k.key}
                       type="button"
                       onClick={() => setKind(k.key)}
-                      className="grid w-full grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 px-4 py-3 text-left transition-colors hover:bg-accent/50"
+                      className={chip(kind === k.key)}
                     >
-                      <span
-                        className={`grid size-6 shrink-0 place-items-center rounded-full text-[11px] font-bold ${kindBadge[k.key]}`}
-                      >
-                        {k.title[0]!.toUpperCase()}
-                      </span>
-                      <span className="min-w-0">
-                        <span className="block truncate text-sm font-semibold text-foreground">
-                          {k.title}
-                        </span>
-                        <span className="block truncate text-xs text-muted-foreground">
-                          {SUGGESTIONS[k.key].slice(0, 3).join(", ").toLowerCase()}
-                        </span>
-                      </span>
-                      <span className="w-4 shrink-0 text-center text-positive">
-                        {kind === k.key ? "✓" : ""}
-                      </span>
+                      {k.title}
                     </button>
                   ))}
                 </div>
               </div>
 
+              {/* identificação */}
               <div className="space-y-3 rounded-2xl bg-card p-4">
                 <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {kind === "saidas" && freq !== "unico" ? "valor da parcela" : "valor"}
-                  </span>
-                  <input
-                    autoFocus
-                    inputMode="decimal"
-                    maxLength={20}
-                    value={amount}
-                    onChange={(ev) => setAmount(ev.target.value)}
-                    placeholder="2.000,00"
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                  />
-                </label>
-
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    {kind === "saidas" ? "categoria" : "identificação"}
-                  </span>
+                  <span className="text-xs font-medium text-muted-foreground">identificação</span>
                   <input
                     list={`labels-${kind}`}
                     maxLength={40}
@@ -867,95 +859,203 @@ function Index() {
                     ))}
                   </datalist>
                 </label>
+                <label className="block space-y-1.5">
+                  <span className="text-xs font-medium text-muted-foreground">
+                    nome / descrição (opcional)
+                  </span>
+                  <input
+                    maxLength={60}
+                    value={debtName}
+                    onChange={(ev) => setDebtName(ev.target.value)}
+                    placeholder="ex.: gasolina — abastecimento do carro"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  />
+                </label>
+              </div>
 
-                {kind === "saidas" && (
-                  <div className="space-y-3 border-t border-border pt-3">
-                    <label className="block space-y-1.5">
-                      <span className="text-xs font-medium text-muted-foreground">
-                        nome da dívida
-                      </span>
+              {/* data */}
+              <div className="rounded-2xl bg-card p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs font-medium text-muted-foreground">data</span>
+                  <button
+                    type="button"
+                    onClick={() => setShowCal((v) => !v)}
+                    className="rounded-xl bg-accent px-3 py-1.5 text-sm font-semibold text-foreground"
+                  >
+                    {new Date(
+                      formDateParts.y,
+                      formDateParts.m,
+                      formDateParts.d,
+                    ).toLocaleDateString("pt-BR")}
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  <button type="button" onClick={() => shiftFormDate(-1)} className={chip(false)}>
+                    -1 dia
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setFormDate(iso(today.getFullYear(), today.getMonth(), today.getDate()))
+                    }
+                    className={chip(false)}
+                  >
+                    hoje
+                  </button>
+                  <button type="button" onClick={() => shiftFormDate(1)} className={chip(false)}>
+                    +1 dia
+                  </button>
+                  <button type="button" onClick={() => shiftFormDate(7)} className={chip(false)}>
+                    +7 dias
+                  </button>
+                </div>
+                {showCal && (
+                  <div className="mt-3">
+                    <MonthCalendar value={formDate} onChange={setFormDate} />
+                  </div>
+                )}
+              </div>
+
+              {/* repetição */}
+              <div className="space-y-3 rounded-2xl bg-card p-4">
+                <span className="text-xs font-medium text-muted-foreground">repetição</span>
+                <div className="flex flex-wrap gap-1.5">
+                  <button
+                    type="button"
+                    onClick={() => setFreq("unico")}
+                    className={chip(freq === "unico")}
+                  >
+                    não repete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFreq("mensal")}
+                    className={chip(freq === "mensal")}
+                  >
+                    mensal
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFreq("semanal")}
+                    className={chip(freq === "semanal")}
+                  >
+                    semanal
+                  </button>
+                </div>
+
+                {freq !== "unico" && (
+                  <div className="space-y-1.5">
+                    <span className="text-xs font-medium text-muted-foreground">parcelas</span>
+                    <div className="flex items-center gap-2">
                       <input
-                        maxLength={60}
-                        value={debtName}
-                        onChange={(ev) => setDebtName(ev.target.value)}
-                        placeholder="Gasolina — abastecimento do carro"
-                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                        inputMode="numeric"
+                        disabled={infinite}
+                        value={infinite ? "" : installments}
+                        onChange={(ev) => setInstallments(ev.target.value)}
+                        placeholder="12"
+                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
                       />
-                    </label>
-                    <label className="block space-y-1.5">
-                      <span className="text-xs font-medium text-muted-foreground">repetição</span>
-                      <select
-                        value={freq}
-                        onChange={(ev) => setFreq(ev.target.value as Freq)}
-                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                      <button
+                        type="button"
+                        onClick={() => setInfinite((v) => !v)}
+                        className={chip(infinite)}
                       >
-                        <option value="unico">única (só neste dia)</option>
-                        <option value="mensal">mensal</option>
-                        <option value="semanal">semanal</option>
-                      </select>
-                    </label>
-                    {freq !== "unico" && (
-                      <label className="block space-y-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">parcelas</span>
-                        <div className="flex items-center gap-2">
-                          <input
-                            inputMode="numeric"
-                            disabled={infinite}
-                            value={infinite ? "" : installments}
-                            onChange={(ev) => setInstallments(ev.target.value)}
-                            placeholder="12"
-                            className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
-                          />
-                          <button
-                            type="button"
-                            onClick={() => setInfinite((v) => !v)}
-                            className={chip(infinite)}
-                          >
-                            sem fim
-                          </button>
-                        </div>
-                      </label>
-                    )}
+                        sem fim
+                      </button>
+                    </div>
+                    <div className="flex flex-wrap gap-1.5 pt-1">
+                      {[12, 48, 360].map((n) => (
+                        <button
+                          key={n}
+                          type="button"
+                          onClick={() => {
+                            setInfinite(false);
+                            setInstallments(String(n));
+                          }}
+                          className={chip(!infinite && installments === String(n))}
+                        >
+                          {n}x
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                    {freq === "mensal" && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          dias do mês (dia 31 cai no último dia do mês)
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                            <button
-                              key={d}
-                              type="button"
-                              onClick={() => toggle(daysOfMonth, d, setDaysOfMonth)}
-                              className={chip(daysOfMonth.includes(d))}
-                            >
-                              {d}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                {freq === "mensal" && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      dias do mês (pode escolher vários · 31 cai no último dia)
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
+                        <button
+                          key={d}
+                          type="button"
+                          onClick={() => toggle(daysOfMonth, d, setDaysOfMonth)}
+                          className={chip(daysOfMonth.includes(d))}
+                        >
+                          {d}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
-                    {freq === "semanal" && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-muted-foreground">
-                          dias da semana (pode escolher vários)
-                        </p>
-                        <div className="flex flex-wrap gap-1.5">
-                          {WEEKDAYS.map((w) => (
-                            <button
-                              key={w.value}
-                              type="button"
-                              onClick={() => toggle(daysOfWeek, w.value, setDaysOfWeek)}
-                              className={chip(daysOfWeek.includes(w.value))}
-                            >
-                              {w.short}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
+                {freq === "semanal" && (
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">
+                      dias da semana (pode escolher vários)
+                    </p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {WEEKDAYS.map((w) => (
+                        <button
+                          key={w.value}
+                          type="button"
+                          onClick={() => toggle(daysOfWeek, w.value, setDaysOfWeek)}
+                          className={chip(daysOfWeek.includes(w.value))}
+                        >
+                          {w.short}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* tags */}
+              <div className="space-y-2 rounded-2xl bg-card p-4">
+                <span className="text-xs font-medium text-muted-foreground">tags</span>
+                <div className="flex items-center gap-2">
+                  <input
+                    value={tagInput}
+                    maxLength={24}
+                    onChange={(ev) => setTagInput(ev.target.value)}
+                    onKeyDown={(ev) => {
+                      if (ev.key === "Enter" || ev.key === ",") {
+                        ev.preventDefault();
+                        addTag(tagInput);
+                      }
+                    }}
+                    placeholder="ex.: extra, fixo, carro"
+                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+                  />
+                  <button type="button" onClick={() => addTag(tagInput)} className={chip(false)}>
+                    ＋
+                  </button>
+                </div>
+                {tags.length > 0 && (
+                  <div className="flex flex-wrap gap-1.5">
+                    {tags.map((t) => (
+                      <button
+                        key={t}
+                        type="button"
+                        onClick={() => setTags((prev) => prev.filter((x) => x !== t))}
+                        className={chip(true)}
+                        title="remover tag"
+                      >
+                        {t} ×
+                      </button>
+                    ))}
                   </div>
                 )}
               </div>
