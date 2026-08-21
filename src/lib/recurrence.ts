@@ -7,7 +7,7 @@ export type Recurrence = {
   label: string;
   tags?: string[];
   amount: number;
-  freq: "monthly" | "weekly";
+  freq: "monthly" | "weekly" | "daily";
   daysOfMonth: number[];
   daysOfWeek: number[];
   startDate: string;
