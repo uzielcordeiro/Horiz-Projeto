@@ -12,10 +12,12 @@ const NAV: Item[] = [
 export function AppSidebar({
   onAdd,
   onToday,
+  onNavigate,
   active = "saldos",
 }: {
   onAdd: () => void;
   onToday: () => void;
+  onNavigate?: (key: string) => void;
   active?: string;
 }) {
   const [open, setOpen] = useState(true);
@@ -46,6 +48,7 @@ export function AppSidebar({
             key={item.key}
             type="button"
             disabled={item.soon}
+            onClick={() => onNavigate?.(item.key)}
             title={item.soon ? "em breve" : item.label}
             className={`${row} ${
               item.key === active
@@ -80,9 +83,13 @@ export function AppSidebar({
         </button>
         <button
           type="button"
-          disabled
-          title="em breve"
-          className={`${row} text-muted-foreground disabled:cursor-not-allowed disabled:opacity-45`}
+          onClick={() => onNavigate?.("horizonte")}
+          title="horizonte"
+          className={`${row} ${
+            active === "horizonte"
+              ? "bg-accent text-accent-foreground"
+              : "text-muted-foreground hover:bg-accent/60 hover:text-foreground"
+          }`}
         >
           <span className="w-4 shrink-0 text-center">▩</span>
           {open && <span className="truncate">horizonte</span>}

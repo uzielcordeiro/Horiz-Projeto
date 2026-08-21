@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
 import { MonthCalendar } from "@/components/MonthCalendar";
+import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
 
 import {
   WEEKDAYS,
@@ -138,6 +139,8 @@ function Index() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [view, setView] = useState<"saldos" | "horizonte">("saldos");
+  const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
   const [kind, setKind] = useState<Kind>("entradas");
   const [amount, setAmount] = useState("");
@@ -287,6 +290,39 @@ function Index() {
     for (const k of KINDS) t[k.key] = rows.list.reduce((s, r) => s + r.totals[k.key], 0);
     return t;
   }, [rows]);
+
+  const horizonMonths = useMemo<HorizonMonth[]>(() => {
+    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+    const out: HorizonMonth[] = [];
+    for (let i = 0; i < 12; i += 1) {
+      const ref = new Date(horizonStart.y, horizonStart.m + i, 1);
+      const y = ref.getFullYear();
+      const m = ref.getMonth();
+      const first = iso(y, m, 1);
+      const last = iso(y, m, new Date(y, m + 1, 0).getDate());
+
+      const totals = {} as Record<string, number>;
+      for (const k of KINDS) totals[k.key] = 0;
+
+      for (const e of sorted) {
+        if (e.date >= first && e.date <= last) totals[e.kind] = (totals[e.kind] ?? 0) + e.amount;
+      }
+      for (const r of recurrences) {
+        for (const o of occurrencesInMonth(r, y, m)) {
+          totals[o.kind] = (totals[o.kind] ?? 0) + o.amount;
+        }
+      }
+
+      const opening =
+        signedTotal(sorted.filter((e) => e.date < first)) -
+        recurrences.reduce((s, r) => s + sumBefore(r, first), 0);
+      const delta = KINDS.reduce((s, k) => s + k.sign * (totals[k.key] ?? 0), 0);
+      const closing = opening + delta;
+
+      out.push({ y, m, label: monthLabel(y, m), totals, closing, status: statusOf(closing) });
+    }
+    return out;
+  }, [entries, recurrences, horizonStart]);
 
   const closingStatus = statusOf(rows.closing);
 
@@ -554,15 +590,24 @@ function Index() {
           setAdding(true);
         }}
         onToday={goToday}
+        active={view}
+        onNavigate={(key) => {
+          if (key === "horizonte") {
+            setHorizonStart({ y: cursor.y, m: cursor.m });
+            setView("horizonte");
+          } else if (key === "saldos") {
+            setView("saldos");
+          }
+        }}
       />
 
       <div className="min-w-0 flex-1">
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 sm:px-8">
             <h1 className="truncate font-display text-xl font-semibold text-foreground sm:text-2xl">
-              saldos
+              {view === "horizonte" ? "horizonte" : "saldos"}
             </h1>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className={`flex shrink-0 items-center gap-1 ${view === "horizonte" ? "hidden" : ""}`}>
               <button onClick={() => shiftMonth(-12)} aria-label="Ano anterior" className={navBtn}>
                 «
               </button>
@@ -589,6 +634,33 @@ function Index() {
         </header>
 
       <main className="w-full space-y-6 px-5 py-6 sm:px-8">
+        {view === "horizonte" ? (
+          <HorizonBoard
+            months={horizonMonths}
+            columns={KINDS.map((k) => ({ key: k.key, title: k.title }))}
+            rangeLabel={`${monthLabel(horizonMonths[0]!.y, horizonMonths[0]!.m)} — ${monthLabel(
+              horizonMonths[11]!.y,
+              horizonMonths[11]!.m,
+            )}`}
+            onShift={(delta) =>
+              setHorizonStart((h) => {
+                const d = new Date(h.y, h.m + delta, 1);
+                return { y: d.getFullYear(), m: d.getMonth() };
+              })
+            }
+            onPick={(y, m) => {
+              setError(null);
+              setShowCal(false);
+              const sameMonth = y === today.getFullYear() && m === today.getMonth();
+              const day = sameMonth ? today.getDate() : 1;
+              setCursor({ y, m });
+              setSelectedDay(day);
+              setFormDate(iso(y, m, day));
+              setAdding(true);
+            }}
+          />
+        ) : (
+          <>
 
         <section className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-4">
@@ -1091,6 +1163,8 @@ function Index() {
           saídas, pode nomear a dívida, parcelar (12, 48, 360…) ou deixar recorrente sem fim
         </p>
 
+          </>
+        )}
       </main>
       </div>
     </div>
