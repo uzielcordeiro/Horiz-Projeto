@@ -4,6 +4,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
 import { MonthCalendar } from "@/components/MonthCalendar";
+import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
 
 import {
   WEEKDAYS,
@@ -138,6 +139,8 @@ function Index() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [view, setView] = useState<"saldos" | "horizonte">("saldos");
+  const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
   const [kind, setKind] = useState<Kind>("entradas");
   const [amount, setAmount] = useState("");
@@ -287,6 +290,39 @@ function Index() {
     for (const k of KINDS) t[k.key] = rows.list.reduce((s, r) => s + r.totals[k.key], 0);
     return t;
   }, [rows]);
+
+  const horizonMonths = useMemo<HorizonMonth[]>(() => {
+    const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
+    const out: HorizonMonth[] = [];
+    for (let i = 0; i < 12; i += 1) {
+      const ref = new Date(horizonStart.y, horizonStart.m + i, 1);
+      const y = ref.getFullYear();
+      const m = ref.getMonth();
+      const first = iso(y, m, 1);
+      const last = iso(y, m, new Date(y, m + 1, 0).getDate());
+
+      const totals = {} as Record<string, number>;
+      for (const k of KINDS) totals[k.key] = 0;
+
+      for (const e of sorted) {
+        if (e.date >= first && e.date <= last) totals[e.kind] = (totals[e.kind] ?? 0) + e.amount;
+      }
+      for (const r of recurrences) {
+        for (const o of occurrencesInMonth(r, y, m)) {
+          totals[o.kind] = (totals[o.kind] ?? 0) + o.amount;
+        }
+      }
+
+      const opening =
+        signedTotal(sorted.filter((e) => e.date < first)) -
+        recurrences.reduce((s, r) => s + sumBefore(r, first), 0);
+      const delta = KINDS.reduce((s, k) => s + k.sign * (totals[k.key] ?? 0), 0);
+      const closing = opening + delta;
+
+      out.push({ y, m, label: monthLabel(y, m), totals, closing, status: statusOf(closing) });
+    }
+    return out;
+  }, [entries, recurrences, horizonStart]);
 
   const closingStatus = statusOf(rows.closing);
 
@@ -554,6 +590,15 @@ function Index() {
           setAdding(true);
         }}
         onToday={goToday}
+        active={view}
+        onNavigate={(key) => {
+          if (key === "horizonte") {
+            setHorizonStart({ y: cursor.y, m: cursor.m });
+            setView("horizonte");
+          } else if (key === "saldos") {
+            setView("saldos");
+          }
+        }}
       />
 
       <div className="min-w-0 flex-1">

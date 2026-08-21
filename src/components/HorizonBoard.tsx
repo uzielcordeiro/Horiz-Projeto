@@ -28,7 +28,10 @@ type Props = {
 export function HorizonBoard({ months, columns, onShift, onPick, rangeLabel }: Props) {
   const nav =
     "grid size-9 shrink-0 place-items-center rounded-full border border-border text-foreground transition-colors hover:bg-accent";
-  const grid = `grid min-w-[760px] grid-cols-[110px_repeat(${columns.length},minmax(100px,1fr))_minmax(120px,1fr)]`;
+  const grid = "grid min-w-[760px]";
+  const gridStyle = {
+    gridTemplateColumns: `110px repeat(${columns.length}, minmax(100px, 1fr)) minmax(120px, 1fr)`,
+  };
 
   return (
     <section className="min-w-0">
@@ -58,6 +61,7 @@ export function HorizonBoard({ months, columns, onShift, onPick, rangeLabel }: P
       <div className="overflow-hidden rounded-2xl border border-border">
         <div className="overflow-x-auto">
           <div
+            style={gridStyle}
             className={`${grid} items-center bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
           >
             <span>mês</span>
@@ -75,6 +79,7 @@ export function HorizonBoard({ months, columns, onShift, onPick, rangeLabel }: P
                 key={`${mo.y}-${mo.m}`}
                 type="button"
                 onClick={() => onPick(mo.y, mo.m)}
+                style={gridStyle}
                 className={`${grid} w-full items-center px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/40`}
               >
                 <span className="truncate font-medium text-foreground">{mo.label}</span>
