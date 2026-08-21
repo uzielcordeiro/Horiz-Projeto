@@ -126,7 +126,7 @@ type DayItem = {
   date: string;
 };
 
-type Freq = "unico" | "mensal" | "semanal";
+type Freq = "unico" | "diario" | "mensal" | "semanal";
 
 function Index() {
   const today = new Date();
@@ -299,8 +299,14 @@ function Index() {
   }
 
   function goToday() {
-    setCursor({ y: today.getFullYear(), m: today.getMonth() });
-    setSelectedDay(today.getDate());
+    const now = new Date();
+    setCursor({ y: now.getFullYear(), m: now.getMonth() });
+    setSelectedDay(now.getDate());
+    const target = iso(now.getFullYear(), now.getMonth(), now.getDate());
+    requestAnimationFrame(() => {
+      const el = document.querySelector(`[data-day-row="${target}"]`);
+      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+    });
   }
 
   function shiftDay(delta: number) {
@@ -390,7 +396,7 @@ function Index() {
           label: label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
           tags: cleanTags,
           amount: value,
-          freq: freq === "mensal" ? "monthly" : "weekly",
+          freq: freq === "mensal" ? "monthly" : freq === "semanal" ? "weekly" : "daily",
           daysOfMonth: dom,
           daysOfWeek: dow,
           startDate: date,
@@ -727,7 +733,7 @@ function Index() {
                 const s = statusOf(row.balance);
                 const open = selectedDay === row.day;
                 return (
-                  <div key={row.date}>
+                  <div key={row.date} data-day-row={row.date}>
                     <button
                       onClick={() => {
                         setError(null);
@@ -926,6 +932,13 @@ function Index() {
                     className={chip(freq === "unico")}
                   >
                     não repete
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFreq("diario")}
+                    className={chip(freq === "diario")}
+                  >
+                    diariamente
                   </button>
                   <button
                     type="button"
