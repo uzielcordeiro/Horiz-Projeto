@@ -70,6 +70,18 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
     return false;
   };
 
+  if (rec.freq === "daily") {
+    const day = new Date(start.y, start.m, start.d);
+    while (index < MAX_OCCURRENCES) {
+      const date = isoOf(day.getFullYear(), day.getMonth(), day.getDate());
+      if (total == null && date > untilDate) break;
+      if (push(date)) return out;
+      if (total != null && index >= total) break;
+      day.setDate(day.getDate() + 1);
+    }
+    return out;
+  }
+
   if (rec.freq === "monthly") {
     const days = [...new Set(rec.daysOfMonth)].sort((a, b) => a - b);
     if (days.length === 0) return out;
