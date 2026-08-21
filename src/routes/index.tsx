@@ -605,9 +605,9 @@ function Index() {
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 sm:px-8">
             <h1 className="truncate font-display text-xl font-semibold text-foreground sm:text-2xl">
-              saldos
+              {view === "horizonte" ? "horizonte" : "saldos"}
             </h1>
-            <div className="flex shrink-0 items-center gap-1">
+            <div className={`flex shrink-0 items-center gap-1 ${view === "horizonte" ? "hidden" : ""}`}>
               <button onClick={() => shiftMonth(-12)} aria-label="Ano anterior" className={navBtn}>
                 «
               </button>
@@ -634,6 +634,33 @@ function Index() {
         </header>
 
       <main className="w-full space-y-6 px-5 py-6 sm:px-8">
+        {view === "horizonte" ? (
+          <HorizonBoard
+            months={horizonMonths}
+            columns={KINDS.map((k) => ({ key: k.key, title: k.title }))}
+            rangeLabel={`${monthLabel(horizonMonths[0]!.y, horizonMonths[0]!.m)} — ${monthLabel(
+              horizonMonths[11]!.y,
+              horizonMonths[11]!.m,
+            )}`}
+            onShift={(delta) =>
+              setHorizonStart((h) => {
+                const d = new Date(h.y, h.m + delta, 1);
+                return { y: d.getFullYear(), m: d.getMonth() };
+              })
+            }
+            onPick={(y, m) => {
+              setError(null);
+              setShowCal(false);
+              const sameMonth = y === today.getFullYear() && m === today.getMonth();
+              const day = sameMonth ? today.getDate() : 1;
+              setCursor({ y, m });
+              setSelectedDay(day);
+              setFormDate(iso(y, m, day));
+              setAdding(true);
+            }}
+          />
+        ) : (
+          <>
 
         <section className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-4">
@@ -1136,6 +1163,8 @@ function Index() {
           saídas, pode nomear a dívida, parcelar (12, 48, 360…) ou deixar recorrente sem fim
         </p>
 
+          </>
+        )}
       </main>
       </div>
     </div>
