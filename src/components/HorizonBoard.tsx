@@ -69,19 +69,20 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso }: 
         </div>
       </div>
 
-      <div className="overflow-hidden rounded-2xl border border-border">
-        <div className="overflow-x-auto">
+      <div className="rounded-2xl border border-border">
+        <div className="max-h-[calc(100vh-230px)] overflow-auto rounded-2xl">
           <div className="flex min-w-max">
             {months.map((mo) => (
               <div key={`${mo.y}-${mo.m}`} className="w-40 shrink-0 border-r border-border last:border-r-0">
                 <button
                   type="button"
                   onClick={() => onPick(mo.y, mo.m, 1)}
-                  className="block w-full bg-secondary px-3 py-2.5 text-center text-sm font-semibold text-foreground transition-colors hover:bg-accent"
+                  className="sticky top-0 z-10 block w-full border-b border-border bg-secondary px-3 py-2.5 text-center text-sm font-semibold text-foreground transition-colors hover:bg-accent"
                 >
                   {mo.label}
                 </button>
                 <div className="divide-y divide-border">
+
                   {Array.from({ length: maxDays }, (_, i) => {
                     const d = mo.days[i];
                     if (!d)
