@@ -609,7 +609,7 @@ function Index() {
           if (key === "horizonte") {
             setHorizonStart({ y: cursor.y, m: cursor.m });
             setView("horizonte");
-          } else if (key === "saldos") {
+          } else {
             setView("saldos");
           }
         }}
