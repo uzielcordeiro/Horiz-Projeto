@@ -651,7 +651,7 @@ function Index() {
         {view === "horizonte" ? (
           <HorizonBoard
             months={horizonMonths}
-            columns={KINDS.map((k) => ({ key: k.key, title: k.title }))}
+            todayIso={iso(today.getFullYear(), today.getMonth(), today.getDate())}
             rangeLabel={`${monthLabel(horizonMonths[0]!.y, horizonMonths[0]!.m)} — ${monthLabel(
               horizonMonths[11]!.y,
               horizonMonths[11]!.m,
@@ -662,11 +662,9 @@ function Index() {
                 return { y: d.getFullYear(), m: d.getMonth() };
               })
             }
-            onPick={(y, m) => {
+            onPick={(y, m, day) => {
               setError(null);
               setShowCal(false);
-              const sameMonth = y === today.getFullYear() && m === today.getMonth();
-              const day = sameMonth ? today.getDate() : 1;
               setCursor({ y, m });
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
