@@ -90,7 +90,7 @@ const monthLabel = (y: number, m: number) =>
   new Date(y, m, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
 type Status = "positive" | "warning" | "negative";
-const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b > 0 ? "warning" : "negative");
+const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b >= 0 ? "warning" : "negative");
 const saldoCell: Record<Status, string> = {
   positive: "bg-positive/15 text-positive",
   warning: "bg-warning/20 text-warning-foreground",
