@@ -1,37 +1,48 @@
 type Status = "positive" | "warning" | "negative";
 
+export type HorizonDay = {
+  day: number;
+  date: string;
+  balance: number;
+  status: Status;
+};
+
 export type HorizonMonth = {
   y: number;
   m: number;
   label: string;
-  totals: Record<string, number>;
-  closing: number;
-  status: Status;
+  days: HorizonDay[];
 };
 
-const saldoCell: Record<Status, string> = {
-  positive: "bg-positive/15 text-positive",
-  warning: "bg-warning/20 text-warning-foreground",
-  negative: "bg-negative/15 text-negative",
+const cell: Record<Status, string> = {
+  positive: "bg-positive/20 text-positive",
+  warning: "bg-warning/25 text-warning-foreground",
+  negative: "bg-negative/20 text-negative",
 };
 
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+const compact = (v: number) => {
+  const abs = Math.abs(v);
+  const sign = v < 0 ? "-" : "";
+  if (abs >= 1000)
+    return `${sign}${(abs / 1000).toLocaleString("pt-BR", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}K`;
+  return `${sign}${abs.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
+};
 
 type Props = {
   months: HorizonMonth[];
-  columns: { key: string; title: string }[];
   onShift: (delta: number) => void;
-  onPick: (y: number, m: number) => void;
+  onPick: (y: number, m: number, day: number) => void;
   rangeLabel: string;
+  todayIso: string;
 };
 
-export function HorizonBoard({ months, columns, onShift, onPick, rangeLabel }: Props) {
+export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso }: Props) {
   const nav =
     "grid size-9 shrink-0 place-items-center rounded-full border border-border text-foreground transition-colors hover:bg-accent";
-  const grid = "grid min-w-[760px]";
-  const gridStyle = {
-    gridTemplateColumns: `110px repeat(${columns.length}, minmax(100px, 1fr)) minmax(120px, 1fr)`,
-  };
+  const maxDays = Math.max(...months.map((mo) => mo.days.length), 31);
 
   return (
     <section className="min-w-0">
@@ -60,47 +71,52 @@ export function HorizonBoard({ months, columns, onShift, onPick, rangeLabel }: P
 
       <div className="overflow-hidden rounded-2xl border border-border">
         <div className="overflow-x-auto">
-          <div
-            style={gridStyle}
-            className={`${grid} items-center bg-secondary px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
-          >
-            <span>mês</span>
-            {columns.map((c) => (
-              <span key={c.key} className="text-right">
-                {c.title}
-              </span>
-            ))}
-            <span className="text-right">saldo</span>
-          </div>
-
-          <div className="divide-y divide-border">
+          <div className="flex min-w-max">
             {months.map((mo) => (
-              <button
-                key={`${mo.y}-${mo.m}`}
-                type="button"
-                onClick={() => onPick(mo.y, mo.m)}
-                style={gridStyle}
-                className={`${grid} w-full items-center px-3 py-2.5 text-left text-sm transition-colors hover:bg-accent/40`}
-              >
-                <span className="truncate font-medium text-foreground">{mo.label}</span>
-                {columns.map((c) => (
-                  <span key={c.key} className="text-right tabular-nums text-muted-foreground">
-                    {mo.totals[c.key] ? brl(mo.totals[c.key] ?? 0) : "—"}
-                  </span>
-                ))}
-                <span
-                  className={`rounded-lg px-2 py-1 text-right font-semibold tabular-nums ${saldoCell[mo.status]}`}
+              <div key={`${mo.y}-${mo.m}`} className="w-40 shrink-0 border-r border-border last:border-r-0">
+                <button
+                  type="button"
+                  onClick={() => onPick(mo.y, mo.m, 1)}
+                  className="block w-full bg-secondary px-3 py-2.5 text-center text-sm font-semibold text-foreground transition-colors hover:bg-accent"
                 >
-                  {brl(mo.closing)}
-                </span>
-              </button>
+                  {mo.label}
+                </button>
+                <div className="divide-y divide-border">
+                  {Array.from({ length: maxDays }, (_, i) => {
+                    const d = mo.days[i];
+                    if (!d)
+                      return <div key={i} className="h-8 bg-muted/20" aria-hidden />;
+                    const isToday = d.date === todayIso;
+                    return (
+                      <button
+                        key={d.date}
+                        type="button"
+                        onClick={() => onPick(mo.y, mo.m, d.day)}
+                        className={`grid h-8 w-full grid-cols-[34px_minmax(0,1fr)] items-center text-xs transition-opacity hover:opacity-80 ${cell[d.status]}`}
+                      >
+                        <span
+                          className={`h-full grid place-items-center bg-background/60 tabular-nums ${
+                            isToday ? "font-bold text-foreground" : "text-muted-foreground"
+                          }`}
+                        >
+                          {d.day}
+                        </span>
+                        <span className="pr-2 text-right font-semibold tabular-nums">
+                          {compact(d.balance)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
             ))}
           </div>
         </div>
       </div>
 
       <p className="mt-2 text-xs text-muted-foreground">
-        clique em um mês para lançar direto nele.
+        verde: saldo ≥ R$ 1.000 · amarelo: entre R$ 0 e R$ 1.000 · vermelho: negativo. clique em um
+        dia para lançar nele.
       </p>
     </section>
   );

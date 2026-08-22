@@ -23,11 +23,11 @@ export function AppSidebar({
   const [open, setOpen] = useState(true);
 
   const row =
-    "flex w-full items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors";
+    "relative z-30 flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-3 py-2 text-sm font-medium transition-colors";
 
   return (
     <aside
-      className={`sticky top-0 flex h-screen shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 ${
+      className={`relative z-30 sticky top-0 flex h-screen shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 ${
         open ? "w-52" : "w-16"
       }`}
     >

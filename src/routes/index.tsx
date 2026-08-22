@@ -90,7 +90,7 @@ const monthLabel = (y: number, m: number) =>
   new Date(y, m, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
 type Status = "positive" | "warning" | "negative";
-const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b > 0 ? "warning" : "negative");
+const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b >= 0 ? "warning" : "negative");
 const saldoCell: Record<Status, string> = {
   positive: "bg-positive/15 text-positive",
   warning: "bg-warning/20 text-warning-foreground",
@@ -299,30 +299,44 @@ function Index() {
       const y = ref.getFullYear();
       const m = ref.getMonth();
       const first = iso(y, m, 1);
-      const last = iso(y, m, new Date(y, m + 1, 0).getDate());
+      const total = new Date(y, m + 1, 0).getDate();
 
-      const totals = {} as Record<string, number>;
-      for (const k of KINDS) totals[k.key] = 0;
+      // saldo de abertura do mês
+      let running =
+        signedTotal(sorted.filter((e) => e.date < first)) -
+        recurrences.reduce((s, r) => s + sumBefore(r, first), 0);
 
+      const byDate = new Map<string, number>();
       for (const e of sorted) {
-        if (e.date >= first && e.date <= last) totals[e.kind] = (totals[e.kind] ?? 0) + e.amount;
+        if (e.date >= first) {
+          const k = KINDS.find((x) => x.key === e.kind);
+          if (k) byDate.set(e.date, (byDate.get(e.date) ?? 0) + k.sign * e.amount);
+        }
       }
       for (const r of recurrences) {
         for (const o of occurrencesInMonth(r, y, m)) {
-          totals[o.kind] = (totals[o.kind] ?? 0) + o.amount;
+          const k = KINDS.find((x) => x.key === o.kind);
+          if (k) byDate.set(o.date, (byDate.get(o.date) ?? 0) + k.sign * o.amount);
         }
       }
 
-      const opening =
-        signedTotal(sorted.filter((e) => e.date < first)) -
-        recurrences.reduce((s, r) => s + sumBefore(r, first), 0);
-      const delta = KINDS.reduce((s, k) => s + k.sign * (totals[k.key] ?? 0), 0);
-      const closing = opening + delta;
+      const days = Array.from({ length: total }, (_, idx) => {
+        const day = idx + 1;
+        const date = iso(y, m, day);
+        running += byDate.get(date) ?? 0;
+        return { day, date, balance: running, status: statusOf(running) };
+      });
 
-      out.push({ y, m, label: monthLabel(y, m), totals, closing, status: statusOf(closing) });
+      const label = `${new Date(y, m, 1)
+        .toLocaleDateString("pt-BR", { month: "short" })
+        .replace(".", "")
+        .slice(0, 3)}/${String(y).slice(-2)}`;
+
+      out.push({ y, m, label, days });
     }
     return out;
   }, [entries, recurrences, horizonStart]);
+
 
   const closingStatus = statusOf(rows.closing);
 
@@ -595,7 +609,7 @@ function Index() {
           if (key === "horizonte") {
             setHorizonStart({ y: cursor.y, m: cursor.m });
             setView("horizonte");
-          } else if (key === "saldos") {
+          } else {
             setView("saldos");
           }
         }}
@@ -637,7 +651,7 @@ function Index() {
         {view === "horizonte" ? (
           <HorizonBoard
             months={horizonMonths}
-            columns={KINDS.map((k) => ({ key: k.key, title: k.title }))}
+            todayIso={iso(today.getFullYear(), today.getMonth(), today.getDate())}
             rangeLabel={`${monthLabel(horizonMonths[0]!.y, horizonMonths[0]!.m)} — ${monthLabel(
               horizonMonths[11]!.y,
               horizonMonths[11]!.m,
@@ -648,11 +662,9 @@ function Index() {
                 return { y: d.getFullYear(), m: d.getMonth() };
               })
             }
-            onPick={(y, m) => {
+            onPick={(y, m, day) => {
               setError(null);
               setShowCal(false);
-              const sameMonth = y === today.getFullYear() && m === today.getMonth();
-              const day = sameMonth ? today.getDate() : 1;
               setCursor({ y, m });
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
