@@ -141,7 +141,7 @@ function Index() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const [view, setView] = useState<"saldos" | "horizonte">("saldos");
+  const [view, setView] = useState<"saldos" | "horizonte" | "totais" | "tags">("saldos");
   const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
   const [kind, setKind] = useState<Kind>("entradas");
