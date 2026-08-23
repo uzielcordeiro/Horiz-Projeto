@@ -5,6 +5,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
+import { TotalsBoard } from "@/components/TotalsBoard";
+import { TagsBoard, type TagRow } from "@/components/TagsBoard";
 
 import {
   WEEKDAYS,
