@@ -650,7 +650,7 @@ function Index() {
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 sm:px-8">
             <h1 className="truncate font-display text-xl font-semibold text-foreground sm:text-2xl">
-              {view === "horizonte" ? "horizonte" : "saldos"}
+              {view}
             </h1>
             <div className={`flex shrink-0 items-center gap-1 ${view === "horizonte" ? "hidden" : ""}`}>
               <button onClick={() => shiftMonth(-12)} aria-label="Ano anterior" className={navBtn}>
