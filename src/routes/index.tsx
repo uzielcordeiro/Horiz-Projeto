@@ -702,6 +702,20 @@ function Index() {
               setAdding(true);
             }}
           />
+        ) : view === "totais" ? (
+          <TotalsBoard data={totalsData} />
+        ) : view === "tags" ? (
+          <TagsBoard
+            rows={tagRows}
+            onAdd={() => {
+              setError(null);
+              setShowCal(false);
+              const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
+              const day = sameMonth ? today.getDate() : 1;
+              setFormDate(iso(cursor.y, cursor.m, day));
+              setAdding(true);
+            }}
+          />
         ) : (
           <>
 
