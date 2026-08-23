@@ -829,11 +829,14 @@ function Index() {
               }}
             >
             <div
-              className={`grid min-w-[760px] ${GRID} items-center px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
+              className={`grid min-w-[760px] ${GRID} items-stretch px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
             >
-              <span>dia</span>
+              <span className="flex items-center">dia</span>
               {KINDS.map((k) => (
-                <span key={k.key} className="flex items-center justify-end gap-1.5">
+                <span
+                  key={k.key}
+                  className="flex items-center justify-end gap-1.5 border-l border-border/70 px-2"
+                >
                   <span
                     aria-hidden
                     className={`grid size-4 place-items-center rounded-full text-[9px] font-bold ${kindBadge[k.key]}`}
@@ -843,7 +846,9 @@ function Index() {
                   {k.title}
                 </span>
               ))}
-              <span className="text-right">saldos</span>
+              <span className="flex items-center justify-end border-l border-border/70 px-2">
+                saldos
+              </span>
             </div>
             </div>
           </div>
