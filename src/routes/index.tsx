@@ -293,6 +293,35 @@ function Index() {
     return t;
   }, [rows]);
 
+  /** dados da aba totais: dias com diários lançados e dias restantes do mês */
+  const totalsData = useMemo(() => {
+    const diaryDays = rows.list.filter((r) => r.totals.diarios > 0).length;
+    const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
+    const remainingDays = sameMonth ? daysInMonth - today.getDate() + 1 : daysInMonth;
+    return { totals: monthTotals, diaryDays, remainingDays };
+  }, [rows, monthTotals, cursor, daysInMonth]);
+
+  /** tags do mês com total somado */
+  const tagRows = useMemo<TagRow[]>(() => {
+    const map = new Map<string, { total: number; count: number }>();
+    const push = (tags: string[] | undefined, amount: number) => {
+      for (const t of tags ?? []) {
+        const cur = map.get(t) ?? { total: 0, count: 0 };
+        map.set(t, { total: cur.total + amount, count: cur.count + 1 });
+      }
+    };
+    const first = iso(cursor.y, cursor.m, 1);
+    const last = iso(cursor.y, cursor.m, daysInMonth);
+    for (const e of entries) {
+      if (e.date >= first && e.date <= last) push(e.tags, e.amount);
+    }
+    for (const r of recurrences) {
+      for (const o of occurrencesInMonth(r, cursor.y, cursor.m)) push(o.tags, o.amount);
+    }
+    return Array.from(map, ([tag, v]) => ({ tag, total: v.total, count: v.count }));
+  }, [entries, recurrences, cursor, daysInMonth]);
+
+
   const horizonMonths = useMemo<HorizonMonth[]>(() => {
     const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     const out: HorizonMonth[] = [];
