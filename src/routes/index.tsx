@@ -878,7 +878,7 @@ function Index() {
                         setFormDate(row.date);
                         setAdding(true);
                       }}
-                      className={`grid w-full ${GRID} items-center px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
+                      className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
                         open ? "bg-accent/60" : ""
                       }`}
                     >
@@ -894,7 +894,7 @@ function Index() {
                       {KINDS.map((k) => (
                         <span
                           key={k.key}
-                          className={`truncate text-right text-sm tabular-nums ${
+                          className={`flex items-center justify-end truncate border-l border-border/70 px-2 text-sm tabular-nums ${
                             row.totals[k.key] > 0
                               ? `font-medium ${kindTone[k.key]}`
                               : "text-muted-foreground/60"
@@ -903,10 +903,12 @@ function Index() {
                           {brl(row.totals[k.key])}
                         </span>
                       ))}
-                      <span
-                        className={`ml-auto rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
-                      >
-                        {brl(row.balance)}
+                      <span className="flex items-center justify-end border-l border-border/70 px-2">
+                        <span
+                          className={`rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
+                        >
+                          {brl(row.balance)}
+                        </span>
                       </span>
                     </button>
 
