@@ -640,6 +640,8 @@ function Index() {
           if (key === "horizonte") {
             setHorizonStart({ y: cursor.y, m: cursor.m });
             setView("horizonte");
+          } else if (key === "totais" || key === "tags") {
+            setView(key);
           } else {
             setView("saldos");
           }
