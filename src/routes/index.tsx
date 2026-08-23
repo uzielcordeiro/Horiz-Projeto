@@ -5,6 +5,8 @@ import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
 import { MonthCalendar } from "@/components/MonthCalendar";
 import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
+import { TotalsBoard } from "@/components/TotalsBoard";
+import { TagsBoard, type TagRow } from "@/components/TagsBoard";
 
 import {
   WEEKDAYS,
@@ -139,7 +141,7 @@ function Index() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const [view, setView] = useState<"saldos" | "horizonte">("saldos");
+  const [view, setView] = useState<"saldos" | "horizonte" | "totais" | "tags">("saldos");
   const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
   const [kind, setKind] = useState<Kind>("entradas");
@@ -290,6 +292,35 @@ function Index() {
     for (const k of KINDS) t[k.key] = rows.list.reduce((s, r) => s + r.totals[k.key], 0);
     return t;
   }, [rows]);
+
+  /** dados da aba totais: dias com diários lançados e dias restantes do mês */
+  const totalsData = useMemo(() => {
+    const diaryDays = rows.list.filter((r) => r.totals.diarios > 0).length;
+    const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
+    const remainingDays = sameMonth ? daysInMonth - today.getDate() + 1 : daysInMonth;
+    return { totals: monthTotals, diaryDays, remainingDays };
+  }, [rows, monthTotals, cursor, daysInMonth]);
+
+  /** tags do mês com total somado */
+  const tagRows = useMemo<TagRow[]>(() => {
+    const map = new Map<string, { total: number; count: number }>();
+    const push = (tags: string[] | undefined, amount: number) => {
+      for (const t of tags ?? []) {
+        const cur = map.get(t) ?? { total: 0, count: 0 };
+        map.set(t, { total: cur.total + amount, count: cur.count + 1 });
+      }
+    };
+    const first = iso(cursor.y, cursor.m, 1);
+    const last = iso(cursor.y, cursor.m, daysInMonth);
+    for (const e of entries) {
+      if (e.date >= first && e.date <= last) push(e.tags, e.amount);
+    }
+    for (const r of recurrences) {
+      for (const o of occurrencesInMonth(r, cursor.y, cursor.m)) push(o.tags, o.amount);
+    }
+    return Array.from(map, ([tag, v]) => ({ tag, total: v.total, count: v.count }));
+  }, [entries, recurrences, cursor, daysInMonth]);
+
 
   const horizonMonths = useMemo<HorizonMonth[]>(() => {
     const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
@@ -609,6 +640,8 @@ function Index() {
           if (key === "horizonte") {
             setHorizonStart({ y: cursor.y, m: cursor.m });
             setView("horizonte");
+          } else if (key === "totais" || key === "tags") {
+            setView(key);
           } else {
             setView("saldos");
           }
@@ -619,7 +652,7 @@ function Index() {
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 sm:px-8">
             <h1 className="truncate font-display text-xl font-semibold text-foreground sm:text-2xl">
-              {view === "horizonte" ? "horizonte" : "saldos"}
+              {view}
             </h1>
             <div className={`flex shrink-0 items-center gap-1 ${view === "horizonte" ? "hidden" : ""}`}>
               <button onClick={() => shiftMonth(-12)} aria-label="Ano anterior" className={navBtn}>
@@ -668,6 +701,20 @@ function Index() {
               setCursor({ y, m });
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
+              setAdding(true);
+            }}
+          />
+        ) : view === "totais" ? (
+          <TotalsBoard data={totalsData} />
+        ) : view === "tags" ? (
+          <TagsBoard
+            rows={tagRows}
+            onAdd={() => {
+              setError(null);
+              setShowCal(false);
+              const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
+              const day = sameMonth ? today.getDate() : 1;
+              setFormDate(iso(cursor.y, cursor.m, day));
               setAdding(true);
             }}
           />
@@ -782,11 +829,14 @@ function Index() {
               }}
             >
             <div
-              className={`grid min-w-[760px] ${GRID} items-center px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
+              className={`grid min-w-[760px] ${GRID} items-stretch px-3 py-2.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground`}
             >
-              <span>dia</span>
+              <span className="flex items-center">dia</span>
               {KINDS.map((k) => (
-                <span key={k.key} className="flex items-center justify-end gap-1.5">
+                <span
+                  key={k.key}
+                  className="flex items-center justify-end gap-1.5 border-l border-border/70 px-2"
+                >
                   <span
                     aria-hidden
                     className={`grid size-4 place-items-center rounded-full text-[9px] font-bold ${kindBadge[k.key]}`}
@@ -796,7 +846,9 @@ function Index() {
                   {k.title}
                 </span>
               ))}
-              <span className="text-right">saldos</span>
+              <span className="flex items-center justify-end border-l border-border/70 px-2">
+                saldos
+              </span>
             </div>
             </div>
           </div>
@@ -826,7 +878,7 @@ function Index() {
                         setFormDate(row.date);
                         setAdding(true);
                       }}
-                      className={`grid w-full ${GRID} items-center px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
+                      className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
                         open ? "bg-accent/60" : ""
                       }`}
                     >
@@ -842,7 +894,7 @@ function Index() {
                       {KINDS.map((k) => (
                         <span
                           key={k.key}
-                          className={`truncate text-right text-sm tabular-nums ${
+                          className={`flex items-center justify-end truncate border-l border-border/70 px-2 text-sm tabular-nums ${
                             row.totals[k.key] > 0
                               ? `font-medium ${kindTone[k.key]}`
                               : "text-muted-foreground/60"
@@ -851,10 +903,12 @@ function Index() {
                           {brl(row.totals[k.key])}
                         </span>
                       ))}
-                      <span
-                        className={`ml-auto rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
-                      >
-                        {brl(row.balance)}
+                      <span className="flex items-center justify-end border-l border-border/70 px-2">
+                        <span
+                          className={`rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
+                        >
+                          {brl(row.balance)}
+                        </span>
                       </span>
                     </button>
 
