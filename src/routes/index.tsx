@@ -839,18 +839,37 @@ function Index() {
           </button>
           {confirmAll ? (
             <>
-              <button onClick={deleteAll} className={dangerBtn}>
-                confirmar: apagar tudo
+              <button
+                onClick={
+                  confirmAll === "mes" ? clearMonth : confirmAll === "ano" ? clearYear : deleteAll
+                }
+                className={dangerBtn}
+              >
+                confirmar:{" "}
+                {confirmAll === "mes"
+                  ? `zerar ${new Date(cursor.y, cursor.m, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`
+                  : confirmAll === "ano"
+                    ? `zerar o ano ${cursor.y}`
+                    : "resetar o sistema"}
               </button>
-              <button onClick={() => setConfirmAll(false)} className={actionBtn}>
+              <button onClick={() => setConfirmAll(null)} className={actionBtn}>
                 cancelar
               </button>
             </>
           ) : (
-            <button onClick={() => setConfirmAll(true)} className={dangerBtn}>
-              apagar tudo
-            </button>
+            <>
+              <button onClick={() => setConfirmAll("mes")} className={dangerBtn}>
+                zerar este mês
+              </button>
+              <button onClick={() => setConfirmAll("ano")} className={dangerBtn}>
+                zerar o ano {cursor.y}
+              </button>
+              <button onClick={() => setConfirmAll("tudo")} className={dangerBtn}>
+                resetar tudo (sistema)
+              </button>
+            </>
           )}
+
         </section>
 
 
