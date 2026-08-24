@@ -172,7 +172,7 @@ function Index() {
   const [history, setHistory] = useState<{ entries: Entry[]; recurrences: Recurrence[] }[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, DayItem>>({});
-  const [confirmAll, setConfirmAll] = useState(false);
+  const [confirmAll, setConfirmAll] = useState<"mes" | "ano" | "tudo" | null>(null);
 
   function commit(nextEntries: Entry[], nextRecurrences: Recurrence[]) {
     setHistory((h) => [...h.slice(-19), { entries, recurrences }]);
