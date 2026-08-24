@@ -571,8 +571,47 @@ function Index() {
   function deleteAll() {
     commit([], []);
     setSelected({});
-    setConfirmAll(false);
+    setConfirmAll(null);
   }
+
+  /** apaga tudo dentro de um intervalo de datas (mês ou ano) */
+  function clearRange(startIso: string, endIso: string, months: { y: number; m: number }[]) {
+    const skipByRec = new Map<string, string[]>();
+    for (const r of recurrences) {
+      const dates: string[] = [];
+      for (const mo of months) {
+        for (const o of occurrencesInMonth(r, mo.y, mo.m)) {
+          if (o.date >= startIso && o.date <= endIso) dates.push(o.date);
+        }
+      }
+      if (dates.length) skipByRec.set(r.id, dates);
+    }
+    commit(
+      entries.filter((e) => e.date < startIso || e.date > endIso),
+      recurrences.map((r) => {
+        const dates = skipByRec.get(r.id);
+        return dates ? { ...r, skipped: [...r.skipped, ...dates] } : r;
+      }),
+    );
+    setSelected({});
+    setConfirmAll(null);
+  }
+
+  function clearMonth() {
+    const last = new Date(cursor.y, cursor.m + 1, 0).getDate();
+    clearRange(iso(cursor.y, cursor.m, 1), iso(cursor.y, cursor.m, last), [
+      { y: cursor.y, m: cursor.m },
+    ]);
+  }
+
+  function clearYear() {
+    clearRange(
+      iso(cursor.y, 0, 1),
+      iso(cursor.y, 11, 31),
+      Array.from({ length: 12 }, (_, m) => ({ y: cursor.y, m })),
+    );
+  }
+
 
 
   const isToday = (day: number) =>
