@@ -976,20 +976,28 @@ function Index() {
             </div>
 
             <div
-              className={`grid ${GRID} items-center border-t border-border bg-secondary px-3 py-3 text-sm font-semibold`}
+              className={`grid ${GRID} items-stretch border-t border-border bg-secondary px-3 py-3 text-sm font-semibold`}
             >
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">total</span>
+              <span className="flex items-center text-xs uppercase tracking-wide text-muted-foreground">
+                total
+              </span>
               {KINDS.map((k) => (
-                <span key={k.key} className={`text-right tabular-nums ${kindTone[k.key]}`}>
+                <span
+                  key={k.key}
+                  className={`flex items-center justify-end border-l border-border/70 px-2 tabular-nums ${kindTone[k.key]}`}
+                >
                   {brl(monthTotals[k.key])}
                 </span>
               ))}
-              <span
-                className={`ml-auto rounded-lg px-2.5 py-1 text-right tabular-nums ${saldoCell[closingStatus]}`}
-              >
-                {brl(rows.closing)}
+              <span className="flex items-center justify-end border-l border-border/70 px-2">
+                <span
+                  className={`rounded-lg px-2.5 py-1 text-right tabular-nums ${saldoCell[closingStatus]}`}
+                >
+                  {brl(rows.closing)}
+                </span>
               </span>
             </div>
+
           </div>
         </section>
         </div>
