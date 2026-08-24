@@ -172,7 +172,7 @@ function Index() {
   const [history, setHistory] = useState<{ entries: Entry[]; recurrences: Recurrence[] }[]>([]);
   const [selectMode, setSelectMode] = useState(false);
   const [selected, setSelected] = useState<Record<string, DayItem>>({});
-  const [confirmAll, setConfirmAll] = useState(false);
+  const [confirmAll, setConfirmAll] = useState<"mes" | "ano" | "tudo" | null>(null);
 
   function commit(nextEntries: Entry[], nextRecurrences: Recurrence[]) {
     setHistory((h) => [...h.slice(-19), { entries, recurrences }]);
@@ -571,8 +571,47 @@ function Index() {
   function deleteAll() {
     commit([], []);
     setSelected({});
-    setConfirmAll(false);
+    setConfirmAll(null);
   }
+
+  /** apaga tudo dentro de um intervalo de datas (mês ou ano) */
+  function clearRange(startIso: string, endIso: string, months: { y: number; m: number }[]) {
+    const skipByRec = new Map<string, string[]>();
+    for (const r of recurrences) {
+      const dates: string[] = [];
+      for (const mo of months) {
+        for (const o of occurrencesInMonth(r, mo.y, mo.m)) {
+          if (o.date >= startIso && o.date <= endIso) dates.push(o.date);
+        }
+      }
+      if (dates.length) skipByRec.set(r.id, dates);
+    }
+    commit(
+      entries.filter((e) => e.date < startIso || e.date > endIso),
+      recurrences.map((r) => {
+        const dates = skipByRec.get(r.id);
+        return dates ? { ...r, skipped: [...r.skipped, ...dates] } : r;
+      }),
+    );
+    setSelected({});
+    setConfirmAll(null);
+  }
+
+  function clearMonth() {
+    const last = new Date(cursor.y, cursor.m + 1, 0).getDate();
+    clearRange(iso(cursor.y, cursor.m, 1), iso(cursor.y, cursor.m, last), [
+      { y: cursor.y, m: cursor.m },
+    ]);
+  }
+
+  function clearYear() {
+    clearRange(
+      iso(cursor.y, 0, 1),
+      iso(cursor.y, 11, 31),
+      Array.from({ length: 12 }, (_, m) => ({ y: cursor.y, m })),
+    );
+  }
+
 
 
   const isToday = (day: number) =>
@@ -800,18 +839,37 @@ function Index() {
           </button>
           {confirmAll ? (
             <>
-              <button onClick={deleteAll} className={dangerBtn}>
-                confirmar: apagar tudo
+              <button
+                onClick={
+                  confirmAll === "mes" ? clearMonth : confirmAll === "ano" ? clearYear : deleteAll
+                }
+                className={dangerBtn}
+              >
+                confirmar:{" "}
+                {confirmAll === "mes"
+                  ? `zerar ${new Date(cursor.y, cursor.m, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`
+                  : confirmAll === "ano"
+                    ? `zerar o ano ${cursor.y}`
+                    : "resetar o sistema"}
               </button>
-              <button onClick={() => setConfirmAll(false)} className={actionBtn}>
+              <button onClick={() => setConfirmAll(null)} className={actionBtn}>
                 cancelar
               </button>
             </>
           ) : (
-            <button onClick={() => setConfirmAll(true)} className={dangerBtn}>
-              apagar tudo
-            </button>
+            <>
+              <button onClick={() => setConfirmAll("mes")} className={dangerBtn}>
+                zerar este mês
+              </button>
+              <button onClick={() => setConfirmAll("ano")} className={dangerBtn}>
+                zerar o ano {cursor.y}
+              </button>
+              <button onClick={() => setConfirmAll("tudo")} className={dangerBtn}>
+                resetar tudo (sistema)
+              </button>
+            </>
           )}
+
         </section>
 
 
@@ -918,20 +976,28 @@ function Index() {
             </div>
 
             <div
-              className={`grid ${GRID} items-center border-t border-border bg-secondary px-3 py-3 text-sm font-semibold`}
+              className={`grid ${GRID} items-stretch border-t border-border bg-secondary px-3 py-3 text-sm font-semibold`}
             >
-              <span className="text-xs uppercase tracking-wide text-muted-foreground">total</span>
+              <span className="flex items-center text-xs uppercase tracking-wide text-muted-foreground">
+                total
+              </span>
               {KINDS.map((k) => (
-                <span key={k.key} className={`text-right tabular-nums ${kindTone[k.key]}`}>
+                <span
+                  key={k.key}
+                  className={`flex items-center justify-end border-l border-border/70 px-2 tabular-nums ${kindTone[k.key]}`}
+                >
                   {brl(monthTotals[k.key])}
                 </span>
               ))}
-              <span
-                className={`ml-auto rounded-lg px-2.5 py-1 text-right tabular-nums ${saldoCell[closingStatus]}`}
-              >
-                {brl(rows.closing)}
+              <span className="flex items-center justify-end border-l border-border/70 px-2">
+                <span
+                  className={`rounded-lg px-2.5 py-1 text-right tabular-nums ${saldoCell[closingStatus]}`}
+                >
+                  {brl(rows.closing)}
+                </span>
               </span>
             </div>
+
           </div>
         </section>
         </div>
