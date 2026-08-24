@@ -23,16 +23,7 @@ export function AppSidebar({
   const [open, setOpen] = useState(true);
 
   const row =
-    "relative z-30 flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors";
-
-  /** dispara no pointerup: evita "toque fantasma" quando o ponteiro sobe pela lista */
-  const press = (fn?: () => void) => ({
-    onPointerUp: (e: React.PointerEvent) => {
-      e.preventDefault();
-      fn?.();
-    },
-    onClick: () => {},
-  });
+    "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors";
 
   return (
     <aside
@@ -57,7 +48,7 @@ export function AppSidebar({
             key={item.key}
             type="button"
             disabled={item.soon}
-            {...press(() => onNavigate?.(item.key))}
+            onClick={() => onNavigate?.(item.key)}
             title={item.soon ? "em breve" : item.label}
             className={`${row} ${
               item.key === active
@@ -74,7 +65,7 @@ export function AppSidebar({
       <div className="mt-6 space-y-1 border-t border-border px-2 pt-4">
         <button
           type="button"
-          {...press(onAdd)}
+          onClick={onAdd}
           title="adicionar"
           className={`${row} text-foreground hover:bg-accent/60`}
         >
@@ -83,7 +74,7 @@ export function AppSidebar({
         </button>
         <button
           type="button"
-          {...press(onToday)}
+          onClick={onToday}
           title="ir pra hoje"
           className={`${row} text-muted-foreground hover:bg-accent/60 hover:text-foreground`}
         >
@@ -92,7 +83,7 @@ export function AppSidebar({
         </button>
         <button
           type="button"
-          {...press(() => onNavigate?.("horizonte"))}
+          onClick={() => onNavigate?.("horizonte")}
           title="horizonte"
           className={`${row} ${
             active === "horizonte"
@@ -107,7 +98,7 @@ export function AppSidebar({
 
       <button
         type="button"
-        {...press(() => setOpen((v) => !v))}
+        onClick={() => setOpen((v) => !v)}
         aria-label={open ? "recolher menu" : "expandir menu"}
         className="mt-auto m-3 grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
       >
