@@ -381,12 +381,18 @@ function Index() {
 
   function goToday() {
     const now = new Date();
+    setAdding(false);
+    setError(null);
+    setShowCal(false);
+    setView("saldos");
     setCursor({ y: now.getFullYear(), m: now.getMonth() });
     setSelectedDay(now.getDate());
     const target = iso(now.getFullYear(), now.getMonth(), now.getDate());
     requestAnimationFrame(() => {
-      const el = document.querySelector(`[data-day-row="${target}"]`);
-      el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      requestAnimationFrame(() => {
+        const el = document.querySelector(`[data-day-row="${target}"]`);
+        el?.scrollIntoView({ behavior: "smooth", block: "center" });
+      });
     });
   }
 
@@ -676,6 +682,9 @@ function Index() {
         onToday={goToday}
         active={view}
         onNavigate={(key) => {
+          setAdding(false);
+          setError(null);
+          setShowCal(false);
           if (key === "horizonte") {
             setHorizonStart({ y: cursor.y, m: cursor.m });
             setView("horizonte");
