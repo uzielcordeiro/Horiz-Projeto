@@ -23,18 +23,24 @@ export function AppSidebar({
   const [open, setOpen] = useState(true);
 
   const row =
-    "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium transition-colors";
+    "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors";
 
   return (
     <aside
-      className={`relative z-30 sticky top-0 flex h-screen shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 ${
-        open ? "w-52" : "w-16"
+      className={`relative z-[60] sticky top-0 flex h-screen shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 ${
+        open ? "w-40" : "w-11"
       }`}
     >
-      <div className="flex h-14 items-center gap-3 px-4">
-        <span className="grid size-8 shrink-0 place-items-center rounded-lg bg-primary text-sm font-bold text-primary-foreground">
-          ₭
-        </span>
+      <div className="flex h-14 items-center gap-2 px-2">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          aria-label={open ? "recolher menu" : "expandir menu"}
+          title={open ? "recolher menu" : "expandir menu"}
+          className="grid size-8 shrink-0 place-items-center rounded-lg text-base text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          ☰
+        </button>
         {open && (
           <span className="truncate font-display text-sm font-semibold text-foreground">
             linha do tempo
@@ -96,14 +102,6 @@ export function AppSidebar({
         </button>
       </div>
 
-      <button
-        type="button"
-        onClick={() => setOpen((v) => !v)}
-        aria-label={open ? "recolher menu" : "expandir menu"}
-        className="mt-auto m-3 grid size-8 place-items-center rounded-lg border border-border text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-      >
-        {open ? "‹" : "›"}
-      </button>
     </aside>
   );
 }
