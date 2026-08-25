@@ -70,7 +70,7 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso }: 
       </div>
 
       <div className="rounded-2xl border border-border">
-        <div className="max-h-[calc(100vh-230px)] overflow-auto rounded-2xl">
+        <div className="max-h-[calc(100vh-160px)] overflow-auto rounded-2xl">
           <div className="flex min-w-max">
             {months.map((mo) => (
               <div key={`${mo.y}-${mo.m}`} className="w-40 shrink-0 border-r border-border last:border-r-0">
@@ -93,7 +93,9 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso }: 
                         key={d.date}
                         type="button"
                         onClick={() => onPick(mo.y, mo.m, d.day)}
-                        className={`grid h-8 w-full grid-cols-[34px_minmax(0,1fr)] items-center text-xs transition-opacity hover:opacity-80 ${cell[d.status]}`}
+                        className={`grid h-8 w-full grid-cols-[34px_minmax(0,1fr)] items-center text-xs transition-opacity hover:opacity-80 ${cell[d.status]} ${
+                          isToday ? "border-b-2 border-foreground" : ""
+                        }`}
                       >
                         <span
                           className={`h-full grid place-items-center bg-background/60 tabular-nums ${
