@@ -947,7 +947,7 @@ function Index() {
                       }}
                       className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
                         open ? "bg-accent/60" : ""
-                      }`}
+                      } ${isToday(row.day) ? "border-b-2 border-foreground" : ""}`}
                     >
                       <span
                         className={`grid size-8 place-items-center rounded-lg text-sm font-semibold ${
