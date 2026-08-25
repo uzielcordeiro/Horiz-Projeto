@@ -729,7 +729,7 @@ function Index() {
         </header>
 
       <main className="w-full space-y-6 px-5 py-6 sm:px-8">
-        {view === "horizonte" ? (
+        {view === "horizonte" && !adding ? (
           <HorizonBoard
             months={horizonMonths}
             todayIso={iso(today.getFullYear(), today.getMonth(), today.getDate())}
@@ -752,9 +752,9 @@ function Index() {
               setAdding(true);
             }}
           />
-        ) : view === "totais" ? (
+        ) : view === "totais" && !adding ? (
           <TotalsBoard data={totalsData} />
-        ) : view === "tags" ? (
+        ) : view === "tags" && !adding ? (
           <TagsBoard
             rows={tagRows}
             onAdd={() => {
