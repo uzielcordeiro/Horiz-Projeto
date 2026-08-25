@@ -93,7 +93,9 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso }: 
                         key={d.date}
                         type="button"
                         onClick={() => onPick(mo.y, mo.m, d.day)}
-                        className={`grid h-8 w-full grid-cols-[34px_minmax(0,1fr)] items-center text-xs transition-opacity hover:opacity-80 ${cell[d.status]}`}
+                        className={`grid h-8 w-full grid-cols-[34px_minmax(0,1fr)] items-center text-xs transition-opacity hover:opacity-80 ${cell[d.status]} ${
+                          isToday ? "border-b-2 border-foreground" : ""
+                        }`}
                       >
                         <span
                           className={`h-full grid place-items-center bg-background/60 tabular-nums ${
