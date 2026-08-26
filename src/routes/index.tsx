@@ -17,10 +17,6 @@ import {
 } from "@/lib/recurrence";
 
 export const Route = createFileRoute("/")({
-  // This screen depends entirely on browser state (localStorage). Rendering it
-  // on the server exposed clickable-looking controls before React had attached
-  // their handlers, so clicks immediately after a refresh were discarded.
-  ssr: false,
   head: () => ({
     meta: [
       { title: "Saldos — Linha do Tempo Financeira" },

@@ -111,6 +111,11 @@ function RootShell({ children }: { children: ReactNode }) {
     <html lang="en">
       <head>
         <HeadContent />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `window.__pendingSidebarAction=null;window.__sidebarHydrated=false;document.addEventListener("click",function(e){if(window.__sidebarHydrated)return;var b=e.target instanceof Element?e.target.closest("[data-sidebar-action]"):null;if(b){window.__pendingSidebarAction=b.getAttribute("data-sidebar-action");e.preventDefault()}},true);`,
+          }}
+        />
       </head>
       <body>
         {children}

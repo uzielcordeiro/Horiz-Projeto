@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Item = { key: string; label: string; icon: string; soon?: boolean };
 
@@ -21,6 +21,20 @@ export function AppSidebar({
   active?: string;
 }) {
   const [open, setOpen] = useState(true);
+  const initialHandlers = useRef({ onAdd, onToday, onNavigate });
+
+  useEffect(() => {
+    const state = window as typeof window & {
+      __pendingSidebarAction?: string | null;
+      __sidebarHydrated?: boolean;
+    };
+    state.__sidebarHydrated = true;
+    const action = state.__pendingSidebarAction;
+    state.__pendingSidebarAction = null;
+    if (action === "adicionar") initialHandlers.current.onAdd();
+    else if (action === "hoje") initialHandlers.current.onToday();
+    else if (action) initialHandlers.current.onNavigate?.(action);
+  }, []);
 
   const row =
     "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors";
@@ -53,6 +67,7 @@ export function AppSidebar({
           <button
             key={item.key}
             type="button"
+            data-sidebar-action={item.key}
             disabled={item.soon}
             onClick={() => onNavigate?.(item.key)}
             title={item.soon ? "em breve" : item.label}
@@ -71,6 +86,7 @@ export function AppSidebar({
       <div className="mt-6 space-y-1 border-t border-border px-2 pt-4">
         <button
           type="button"
+          data-sidebar-action="adicionar"
           onClick={onAdd}
           title="adicionar"
           className={`${row} text-foreground hover:bg-accent/60`}
@@ -80,6 +96,7 @@ export function AppSidebar({
         </button>
         <button
           type="button"
+          data-sidebar-action="hoje"
           onClick={onToday}
           title="ir pra hoje"
           className={`${row} text-muted-foreground hover:bg-accent/60 hover:text-foreground`}
@@ -89,6 +106,7 @@ export function AppSidebar({
         </button>
         <button
           type="button"
+          data-sidebar-action="horizonte"
           onClick={() => onNavigate?.("horizonte")}
           title="horizonte"
           className={`${row} ${
