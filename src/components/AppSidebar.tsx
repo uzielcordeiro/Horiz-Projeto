@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
 type Item = { key: string; label: string; icon: string; soon?: boolean };
 
@@ -40,12 +40,12 @@ export function AppSidebar({
     "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors";
 
   const activate = (action: () => void) => ({
-    onPointerDown: (event: React.PointerEvent<HTMLButtonElement>) => {
+    onPointerDown: (event: PointerEvent<HTMLButtonElement>) => {
       if (event.button !== 0) return;
       event.preventDefault();
       action();
     },
-    onClick: (event: React.MouseEvent<HTMLButtonElement>) => {
+    onClick: (event: MouseEvent<HTMLButtonElement>) => {
       // Pointer activation already ran on pointerdown. Keep click for keyboard users.
       if (event.detail === 0) action();
     },
