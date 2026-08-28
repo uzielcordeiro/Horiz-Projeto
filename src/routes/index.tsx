@@ -211,6 +211,13 @@ function Index() {
         const parsed = JSON.parse(rawRec) as Recurrence[];
         setRecurrences(parsed.map((r) => ({ ...r, skipped: r.skipped ?? [] })));
       }
+      const rawForecast = localStorage.getItem(FORECAST_KEY);
+      if (rawForecast) setForecastItems(JSON.parse(rawForecast) as ForecastItem[]);
+      const rawDivisor = localStorage.getItem(FORECAST_DIVISOR_KEY);
+      if (rawDivisor) {
+        const d = Number(rawDivisor);
+        if (Number.isFinite(d) && d > 0) setForecastDivisor(d);
+      }
     } catch {
       /* ignore */
     }
@@ -221,7 +228,9 @@ function Index() {
     if (!loaded) return;
     localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
     localStorage.setItem(REC_KEY, JSON.stringify(recurrences));
-  }, [entries, recurrences, loaded]);
+    localStorage.setItem(FORECAST_KEY, JSON.stringify(forecastItems));
+    localStorage.setItem(FORECAST_DIVISOR_KEY, String(forecastDivisor));
+  }, [entries, recurrences, forecastItems, forecastDivisor, loaded]);
 
   const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
 
@@ -695,7 +704,7 @@ function Index() {
           if (key === "horizonte") {
             setHorizonStart({ y: cursor.y, m: cursor.m });
             setView("horizonte");
-          } else if (key === "totais" || key === "tags") {
+          } else if (key === "totais" || key === "tags" || key === "menu") {
             setView(key);
           } else {
             setView("saldos");
