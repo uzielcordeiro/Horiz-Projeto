@@ -716,9 +716,9 @@ function Index() {
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
           <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 sm:px-8">
             <h1 className="truncate font-display text-xl font-semibold text-foreground sm:text-2xl">
-              {view}
+              {view === "diario" ? "previsão gasto diário" : view}
             </h1>
-            <div className={`flex shrink-0 items-center gap-1 ${view === "horizonte" ? "hidden" : ""}`}>
+            <div className={`flex shrink-0 items-center gap-1 ${view === "horizonte" || view === "menu" || view === "diario" ? "hidden" : ""}`}>
               <button onClick={() => shiftMonth(-12)} aria-label="Ano anterior" className={navBtn}>
                 «
               </button>
@@ -770,6 +770,42 @@ function Index() {
           />
         ) : view === "totais" && !adding ? (
           <TotalsBoard data={totalsData} />
+        ) : view === "menu" && !adding ? (
+          <section className="mx-auto w-full max-w-3xl space-y-4">
+            <p className="text-sm text-muted-foreground">menu</p>
+            <button
+              type="button"
+              onClick={() => setView("diario")}
+              className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 text-left transition-colors hover:bg-accent/40"
+            >
+              <span className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-muted-foreground">
+                ◔
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold text-foreground">
+                  previsão gasto diário
+                </span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  mercado, gasolina, remédio… quanto posso gastar por dia
+                </span>
+              </span>
+              <span className="shrink-0 text-muted-foreground">→</span>
+            </button>
+          </section>
+        ) : view === "diario" && !adding ? (
+          <DailyForecastBoard
+            items={forecastItems}
+            divisor={forecastDivisor}
+            onDivisorChange={setForecastDivisor}
+            onSave={(item) =>
+              setForecastItems((prev) => {
+                const exists = prev.some((p) => p.id === item.id);
+                return exists ? prev.map((p) => (p.id === item.id ? item : p)) : [...prev, item];
+              })
+            }
+            onDelete={(id) => setForecastItems((prev) => prev.filter((p) => p.id !== id))}
+            onBack={() => setView("menu")}
+          />
         ) : view === "tags" && !adding ? (
           <TagsBoard
             rows={tagRows}
