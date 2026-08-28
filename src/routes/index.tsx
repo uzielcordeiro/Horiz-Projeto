@@ -7,6 +7,7 @@ import { MonthCalendar } from "@/components/MonthCalendar";
 import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
 import { TotalsBoard } from "@/components/TotalsBoard";
 import { TagsBoard, type TagRow } from "@/components/TagsBoard";
+import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
 import {
   WEEKDAYS,
@@ -52,6 +53,8 @@ type Entry = {
 
 const STORAGE_KEY = "timeline-entries-v1";
 const REC_KEY = "timeline-recurrences-v1";
+const FORECAST_KEY = "timeline-forecast-v1";
+const FORECAST_DIVISOR_KEY = "timeline-forecast-divisor-v1";
 
 const KINDS: { key: Kind; title: string; sign: 1 | -1 }[] = [
   { key: "entradas", title: "entradas", sign: 1 },
@@ -141,8 +144,12 @@ function Index() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const [view, setView] = useState<"saldos" | "horizonte" | "totais" | "tags">("saldos");
+  const [view, setView] = useState<"saldos" | "horizonte" | "totais" | "tags" | "menu" | "diario">("saldos");
   const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
+
+  // previsão gasto diário (menu)
+  const [forecastItems, setForecastItems] = useState<ForecastItem[]>([]);
+  const [forecastDivisor, setForecastDivisor] = useState(30);
 
   const [kind, setKind] = useState<Kind>("entradas");
   const [amount, setAmount] = useState("");
