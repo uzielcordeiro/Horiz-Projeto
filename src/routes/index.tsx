@@ -696,7 +696,7 @@ function Index() {
           setAdding(true);
         }}
         onToday={goToday}
-        active={view}
+        active={view === "diario" ? "menu" : view}
         onNavigate={(key) => {
           setAdding(false);
           setError(null);
