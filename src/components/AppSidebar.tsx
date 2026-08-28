@@ -21,19 +21,47 @@ export function AppSidebar({
   active?: string;
 }) {
   const [open, setOpen] = useState(true);
-  const initialHandlers = useRef({ onAdd, onToday, onNavigate });
+  const handlers = useRef({ onAdd, onToday, onNavigate });
+  handlers.current = { onAdd, onToday, onNavigate };
 
   useEffect(() => {
     const state = window as typeof window & {
       __pendingSidebarAction?: string | null;
+      __pendingSidebarActions?: string[];
       __sidebarHydrated?: boolean;
     };
+
+    const run = (action: string) => {
+      if (action === "adicionar") handlers.current.onAdd();
+      else if (action === "hoje") handlers.current.onToday();
+      else handlers.current.onNavigate?.(action);
+    };
+
+    const handlePointerDown = (event: globalThis.PointerEvent) => {
+      if (event.button !== 0) return;
+      const target = event.target instanceof Element
+        ? event.target.closest<HTMLButtonElement>("button[data-sidebar-action]")
+        : null;
+      if (!target || target.disabled) return;
+      const action = target.dataset.sidebarAction;
+      if (!action) return;
+      event.preventDefault();
+      run(action);
+    };
+
     state.__sidebarHydrated = true;
-    const action = state.__pendingSidebarAction;
+    const pending = state.__pendingSidebarActions ?? [];
+    const legacyAction = state.__pendingSidebarAction;
+    if (legacyAction) pending.push(legacyAction);
+    state.__pendingSidebarActions = [];
     state.__pendingSidebarAction = null;
-    if (action === "adicionar") initialHandlers.current.onAdd();
-    else if (action === "hoje") initialHandlers.current.onToday();
-    else if (action) initialHandlers.current.onNavigate?.(action);
+    document.addEventListener("pointerdown", handlePointerDown, true);
+    for (const action of pending) run(action);
+
+    return () => {
+      document.removeEventListener("pointerdown", handlePointerDown, true);
+      state.__sidebarHydrated = false;
+    };
   }, []);
 
   const row =
@@ -47,6 +75,12 @@ export function AppSidebar({
     },
     onClick: (event: MouseEvent<HTMLButtonElement>) => {
       // Pointer activation already ran on pointerdown. Keep click for keyboard users.
+      if (event.detail === 0) action();
+    },
+  });
+
+  const keyboardActivate = (action: () => void) => ({
+    onClick: (event: MouseEvent<HTMLButtonElement>) => {
       if (event.detail === 0) action();
     },
   });
@@ -81,7 +115,7 @@ export function AppSidebar({
             type="button"
             data-sidebar-action={item.key}
             disabled={item.soon}
-            {...activate(() => onNavigate?.(item.key))}
+            {...keyboardActivate(() => onNavigate?.(item.key))}
             title={item.soon ? "em breve" : item.label}
             className={`${row} ${
               item.key === active
@@ -99,7 +133,7 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="adicionar"
-          {...activate(onAdd)}
+          {...keyboardActivate(onAdd)}
           title="adicionar"
           className={`${row} text-foreground hover:bg-accent/60`}
         >
@@ -109,7 +143,7 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="hoje"
-          {...activate(onToday)}
+          {...keyboardActivate(onToday)}
           title="ir pra hoje"
           className={`${row} text-muted-foreground hover:bg-accent/60 hover:text-foreground`}
         >
@@ -119,7 +153,7 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="horizonte"
-          {...activate(() => onNavigate?.("horizonte"))}
+          {...keyboardActivate(() => onNavigate?.("horizonte"))}
           title="horizonte"
           className={`${row} ${
             active === "horizonte"
