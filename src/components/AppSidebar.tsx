@@ -6,7 +6,7 @@ const NAV: Item[] = [
   { key: "saldos", label: "saldos", icon: "▦" },
   { key: "totais", label: "totais", icon: "▤" },
   { key: "tags", label: "tags", icon: "◫" },
-  { key: "menu", label: "menu", icon: "≡", soon: true },
+  { key: "menu", label: "menu", icon: "≡" },
 ];
 
 export function AppSidebar({
