@@ -43,7 +43,7 @@ export function AppSidebar({
         ? event.target.closest<HTMLButtonElement>("button[data-sidebar-action]")
         : null;
       if (!target || target.disabled) return;
-      const action = target.dataset.sidebarAction;
+      const action = target.dataset['sidebarAction'];
       if (!action) return;
       event.preventDefault();
       run(action);
