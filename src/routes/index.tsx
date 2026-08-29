@@ -704,8 +704,11 @@ function Index() {
           if (key === "horizonte") {
             setHorizonStart({ y: cursor.y, m: cursor.m });
             setView("horizonte");
-          } else if (key === "totais" || key === "tags" || key === "menu") {
+          } else if (key === "menu") {
+            setView("diario");
+          } else if (key === "totais" || key === "tags") {
             setView(key);
+
           } else {
             setView("saldos");
           }
@@ -770,29 +773,7 @@ function Index() {
           />
         ) : view === "totais" && !adding ? (
           <TotalsBoard data={totalsData} />
-        ) : view === "menu" && !adding ? (
-          <section className="mx-auto w-full max-w-3xl space-y-4">
-            <p className="text-sm text-muted-foreground">menu</p>
-            <button
-              type="button"
-              onClick={() => setView("diario")}
-              className="flex w-full items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4 text-left transition-colors hover:bg-accent/40"
-            >
-              <span className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-muted-foreground">
-                ◔
-              </span>
-              <span className="min-w-0 flex-1">
-                <span className="block truncate text-sm font-semibold text-foreground">
-                  previsão gasto diário
-                </span>
-                <span className="block truncate text-xs text-muted-foreground">
-                  mercado, gasolina, remédio… quanto posso gastar por dia
-                </span>
-              </span>
-              <span className="shrink-0 text-muted-foreground">→</span>
-            </button>
-          </section>
-        ) : view === "diario" && !adding ? (
+        ) : (view === "diario" || view === "menu") && !adding ? (
           <DailyForecastBoard
             items={forecastItems}
             divisor={forecastDivisor}
@@ -804,7 +785,7 @@ function Index() {
               })
             }
             onDelete={(id) => setForecastItems((prev) => prev.filter((p) => p.id !== id))}
-            onBack={() => setView("menu")}
+            onBack={() => setView("saldos")}
           />
         ) : view === "tags" && !adding ? (
           <TagsBoard

@@ -115,7 +115,7 @@ export function AppSidebar({
             type="button"
             data-sidebar-action={item.key}
             disabled={item.soon}
-            {...keyboardActivate(() => onNavigate?.(item.key))}
+            {...activate(() => onNavigate?.(item.key))}
             title={item.soon ? "em breve" : item.label}
             className={`${row} ${
               item.key === active
@@ -133,7 +133,7 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="adicionar"
-          {...keyboardActivate(onAdd)}
+          {...activate(onAdd)}
           title="adicionar"
           className={`${row} text-foreground hover:bg-accent/60`}
         >
@@ -143,7 +143,7 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="hoje"
-          {...keyboardActivate(onToday)}
+          {...activate(onToday)}
           title="ir pra hoje"
           className={`${row} text-muted-foreground hover:bg-accent/60 hover:text-foreground`}
         >
@@ -153,7 +153,7 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="horizonte"
-          {...keyboardActivate(() => onNavigate?.("horizonte"))}
+          {...activate(() => onNavigate?.("horizonte"))}
           title="horizonte"
           className={`${row} ${
             active === "horizonte"
