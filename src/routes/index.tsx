@@ -787,8 +787,6 @@ function Index() {
             onDelete={(id) => setForecastItems((prev) => prev.filter((p) => p.id !== id))}
             onBack={() => setView("saldos")}
           />
-
-          />
         ) : view === "tags" && !adding ? (
           <TagsBoard
             rows={tagRows}
