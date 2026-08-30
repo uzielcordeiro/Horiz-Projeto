@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, type KeyboardEvent, type PointerEvent } from "react";
 
 type Item = { key: string; label: string; icon: string; soon?: boolean };
 
@@ -25,6 +25,19 @@ export function AppSidebar({
   const row =
     "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors";
 
+  const activate = (action: () => void) => (event: PointerEvent<HTMLButtonElement>) => {
+    if (!event.isPrimary || event.button !== 0) return;
+    event.preventDefault();
+    action();
+  };
+
+  const activateFromKeyboard =
+    (action: () => void) => (event: KeyboardEvent<HTMLButtonElement>) => {
+      if (event.key !== "Enter" && event.key !== " ") return;
+      event.preventDefault();
+      if (!event.repeat) action();
+    };
+
   return (
     <aside
       className={`relative z-[60] sticky top-0 flex h-screen shrink-0 flex-col border-r border-border bg-card transition-[width] duration-200 ${
@@ -34,7 +47,8 @@ export function AppSidebar({
       <div className="flex h-14 items-center gap-2 px-2">
         <button
           type="button"
-          onClick={() => setOpen((v) => !v)}
+          onPointerDown={activate(() => setOpen((v) => !v))}
+          onKeyDown={activateFromKeyboard(() => setOpen((v) => !v))}
           aria-label={open ? "recolher menu" : "expandir menu"}
           title={open ? "recolher menu" : "expandir menu"}
           className="grid size-8 shrink-0 place-items-center rounded-lg text-base text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -55,7 +69,8 @@ export function AppSidebar({
             type="button"
             data-sidebar-action={item.key}
             disabled={item.soon}
-            onClick={() => onNavigate?.(item.key)}
+            onPointerDown={activate(() => onNavigate?.(item.key))}
+            onKeyDown={activateFromKeyboard(() => onNavigate?.(item.key))}
             aria-label={item.label}
             title={item.soon ? "em breve" : item.label}
             className={`${row} ${
@@ -74,7 +89,8 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="adicionar"
-          onClick={onAdd}
+          onPointerDown={activate(onAdd)}
+          onKeyDown={activateFromKeyboard(onAdd)}
           aria-label="adicionar"
           title="adicionar"
           className={`${row} text-foreground hover:bg-accent/60`}
@@ -85,7 +101,8 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="hoje"
-          onClick={onToday}
+          onPointerDown={activate(onToday)}
+          onKeyDown={activateFromKeyboard(onToday)}
           aria-label="ir pra hoje"
           title="ir pra hoje"
           className={`${row} text-muted-foreground hover:bg-accent/60 hover:text-foreground`}
@@ -96,7 +113,8 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="horizonte"
-          onClick={() => onNavigate?.("horizonte")}
+          onPointerDown={activate(() => onNavigate?.("horizonte"))}
+          onKeyDown={activateFromKeyboard(() => onNavigate?.("horizonte"))}
           aria-label="horizonte"
           title="horizonte"
           className={`${row} ${
