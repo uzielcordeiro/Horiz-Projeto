@@ -98,9 +98,18 @@ export function DailyForecastBoard({
         </h2>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <p className="min-w-0 truncate text-sm text-muted-foreground">gastos mensais</p>
+        <button
+          type="button"
+          onClick={() => openForm()}
+          aria-label="adicionar gasto"
+          className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        >
+          ＋
+        </button>
       </div>
+
 
 
       {items.length === 0 ? (
