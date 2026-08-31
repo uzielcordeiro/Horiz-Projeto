@@ -233,6 +233,50 @@ function Index() {
     localStorage.setItem(FORECAST_DIVISOR_KEY, String(forecastDivisor));
   }, [entries, recurrences, forecastItems, forecastDivisor, loaded]);
 
+  // sincroniza a previsão gasto diário como saída diária automática no calendário
+  useEffect(() => {
+    if (!loaded) return;
+    const monthly = forecastItems.reduce(
+      (s, i) => s + (i.period === "semanal" ? i.amount * (30 / 7) : i.amount),
+      0,
+    );
+    const perDay =
+      forecastItems.length > 0 && forecastDivisor > 0
+        ? Math.round((monthly / forecastDivisor) * 100) / 100
+        : 0;
+
+    setRecurrences((prev) => {
+      const existing = prev.find((r) => r.id === FORECAST_ID);
+      if (perDay > 0) {
+        if (!existing) {
+          const first = iso(today.getFullYear(), today.getMonth(), 1);
+          return [
+            ...prev,
+            {
+              id: FORECAST_ID,
+              kind: "saidas",
+              name: "previsão gasto diário",
+              label: "gasto diário",
+              tags: ["previsão"],
+              amount: perDay,
+              freq: "daily",
+              daysOfMonth: [],
+              daysOfWeek: [],
+              startDate: first,
+              installments: null,
+              endDate: null,
+              skipped: [],
+            } satisfies Recurrence,
+          ];
+        }
+        if (Math.abs(existing.amount - perDay) < 0.001) return prev;
+        return prev.map((r) => (r.id === FORECAST_ID ? { ...r, amount: perDay } : r));
+      }
+      return existing ? prev.filter((r) => r.id !== FORECAST_ID) : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forecastItems, forecastDivisor, loaded]);
+
   const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
 
   const rows = useMemo(() => {
