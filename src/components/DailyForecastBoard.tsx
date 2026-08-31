@@ -98,27 +98,26 @@ export function DailyForecastBoard({
         </h2>
       </div>
 
-      <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
+      <div className="flex items-center gap-3">
         <p className="min-w-0 truncate text-sm text-muted-foreground">gastos mensais</p>
-        <button
-          type="button"
-          onClick={() => openForm()}
-          aria-label="adicionar gasto"
-          className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-        >
-          ＋
-        </button>
       </div>
+
 
       {items.length === 0 ? (
         <div className="grid place-items-center gap-6 rounded-2xl border border-border bg-card px-6 py-16 text-center">
-          <span className="grid size-20 place-items-center rounded-full border border-border text-2xl text-muted-foreground">
+          <button
+            type="button"
+            onClick={() => openForm()}
+            aria-label="adicionar gasto"
+            className="grid size-20 place-items-center rounded-full border border-border text-2xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
             ＋
-          </span>
+          </button>
           <p className="text-base text-muted-foreground">
             adicione mercado, gasolina, remédio, lanches, apps de comida…
           </p>
         </div>
+
       ) : (
         <div className="overflow-hidden rounded-2xl border border-border bg-card">
           <div className="divide-y divide-border">
