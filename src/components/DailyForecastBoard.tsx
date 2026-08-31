@@ -187,6 +187,11 @@ export function DailyForecastBoard({
             {brl(perDay)}
           </span>
         </div>
+        <p className="border-t border-border pt-3 text-xs text-muted-foreground">
+          esse valor entra automaticamente como saída diária no calendário, em todos os meses a
+          partir do mês atual. editar ou apagar aqui atualiza o calendário — e apagar a saída
+          “previsão gasto diário” no calendário limpa esta lista.
+        </p>
       </div>
 
       {open && (

@@ -55,6 +55,7 @@ const STORAGE_KEY = "timeline-entries-v1";
 const REC_KEY = "timeline-recurrences-v1";
 const FORECAST_KEY = "timeline-forecast-v1";
 const FORECAST_DIVISOR_KEY = "timeline-forecast-divisor-v1";
+const FORECAST_ID = "forecast-auto";
 
 const KINDS: { key: Kind; title: string; sign: 1 | -1 }[] = [
   { key: "entradas", title: "entradas", sign: 1 },
@@ -231,6 +232,50 @@ function Index() {
     localStorage.setItem(FORECAST_KEY, JSON.stringify(forecastItems));
     localStorage.setItem(FORECAST_DIVISOR_KEY, String(forecastDivisor));
   }, [entries, recurrences, forecastItems, forecastDivisor, loaded]);
+
+  // sincroniza a previsão gasto diário como saída diária automática no calendário
+  useEffect(() => {
+    if (!loaded) return;
+    const monthly = forecastItems.reduce(
+      (s, i) => s + (i.period === "semanal" ? i.amount * (30 / 7) : i.amount),
+      0,
+    );
+    const perDay =
+      forecastItems.length > 0 && forecastDivisor > 0
+        ? Math.round((monthly / forecastDivisor) * 100) / 100
+        : 0;
+
+    setRecurrences((prev) => {
+      const existing = prev.find((r) => r.id === FORECAST_ID);
+      if (perDay > 0) {
+        if (!existing) {
+          const first = iso(today.getFullYear(), today.getMonth(), 1);
+          return [
+            ...prev,
+            {
+              id: FORECAST_ID,
+              kind: "saidas",
+              name: "previsão gasto diário",
+              label: "gasto diário",
+              tags: ["previsão"],
+              amount: perDay,
+              freq: "daily",
+              daysOfMonth: [],
+              daysOfWeek: [],
+              startDate: first,
+              installments: null,
+              endDate: null,
+              skipped: [],
+            } satisfies Recurrence,
+          ];
+        }
+        if (Math.abs(existing.amount - perDay) < 0.001) return prev;
+        return prev.map((r) => (r.id === FORECAST_ID ? { ...r, amount: perDay } : r));
+      }
+      return existing ? prev.filter((r) => r.id !== FORECAST_ID) : prev;
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [forecastItems, forecastDivisor, loaded]);
 
   const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
 
@@ -545,6 +590,16 @@ function Index() {
     if (items.length === 0) return;
     const entryIds = new Set(items.filter((i) => i.entryId).map((i) => i.entryId!));
     const skips = items.filter((i) => i.recurrenceId);
+    // caminho inverso: apagou a saída da previsão no calendário → limpa a previsão
+    if (skips.some((s) => s.recurrenceId === FORECAST_ID)) {
+      commit(
+        entries.filter((e) => !entryIds.has(e.id)),
+        recurrences.filter((r) => r.id !== FORECAST_ID),
+      );
+      setForecastItems([]);
+      setSelected({});
+      return;
+    }
     commit(
       entries.filter((e) => !entryIds.has(e.id)),
       recurrences.map((r) => {
@@ -588,10 +643,13 @@ function Index() {
       entries,
       recurrences.filter((r) => r.id !== recurrenceId),
     );
+    // caminho inverso: apagou a saída automática no calendário → limpa a previsão
+    if (recurrenceId === FORECAST_ID) setForecastItems([]);
   }
 
   function deleteAll() {
     commit([], []);
+    setForecastItems([]);
     setSelected({});
     setConfirmAll(null);
   }
