@@ -633,10 +633,13 @@ function Index() {
       entries,
       recurrences.filter((r) => r.id !== recurrenceId),
     );
+    // caminho inverso: apagou a saída automática no calendário → limpa a previsão
+    if (recurrenceId === FORECAST_ID) setForecastItems([]);
   }
 
   function deleteAll() {
     commit([], []);
+    setForecastItems([]);
     setSelected({});
     setConfirmAll(null);
   }
