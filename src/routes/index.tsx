@@ -590,6 +590,16 @@ function Index() {
     if (items.length === 0) return;
     const entryIds = new Set(items.filter((i) => i.entryId).map((i) => i.entryId!));
     const skips = items.filter((i) => i.recurrenceId);
+    // caminho inverso: apagou a saída da previsão no calendário → limpa a previsão
+    if (skips.some((s) => s.recurrenceId === FORECAST_ID)) {
+      commit(
+        entries.filter((e) => !entryIds.has(e.id)),
+        recurrences.filter((r) => r.id !== FORECAST_ID),
+      );
+      setForecastItems([]);
+      setSelected({});
+      return;
+    }
     commit(
       entries.filter((e) => !entryIds.has(e.id)),
       recurrences.map((r) => {
