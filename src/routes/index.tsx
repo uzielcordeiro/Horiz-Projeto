@@ -55,6 +55,7 @@ const STORAGE_KEY = "timeline-entries-v1";
 const REC_KEY = "timeline-recurrences-v1";
 const FORECAST_KEY = "timeline-forecast-v1";
 const FORECAST_DIVISOR_KEY = "timeline-forecast-divisor-v1";
+const FORECAST_ID = "forecast-auto";
 
 const KINDS: { key: Kind; title: string; sign: 1 | -1 }[] = [
   { key: "entradas", title: "entradas", sign: 1 },
