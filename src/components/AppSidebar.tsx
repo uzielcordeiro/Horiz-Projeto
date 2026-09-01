@@ -1,4 +1,4 @@
-import { useState, type KeyboardEvent, type PointerEvent } from "react";
+import { useRef, useState, type MouseEvent, type PointerEvent } from "react";
 
 type Item = { key: string; label: string; icon: string; soon?: boolean };
 
@@ -21,21 +21,29 @@ export function AppSidebar({
   active?: string;
 }) {
   const [open, setOpen] = useState(true);
+  const lastPointerActivation = useRef<{ action: string; at: number } | null>(null);
 
   const row =
     "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors";
 
-  const activate = (action: () => void) => (event: PointerEvent<HTMLButtonElement>) => {
+  // Keep both events: pointerdown gives immediate response, while click is a
+  // browser-native fallback if a rapid pointer sequence drops pointerdown.
+  // The timestamp guard guarantees that one physical press runs only once.
+  const activatePointer =
+    (actionName: string, action: () => void) => (event: PointerEvent<HTMLButtonElement>) => {
     if (!event.isPrimary || event.button !== 0) return;
-    event.preventDefault();
+    lastPointerActivation.current = { action: actionName, at: performance.now() };
     action();
   };
 
-  const activateFromKeyboard =
-    (action: () => void) => (event: KeyboardEvent<HTMLButtonElement>) => {
-      if (event.key !== "Enter" && event.key !== " ") return;
-      event.preventDefault();
-      if (!event.repeat) action();
+  const activateClick =
+    (actionName: string, action: () => void) => (event: MouseEvent<HTMLButtonElement>) => {
+      const last = lastPointerActivation.current;
+      if (last && last.action === actionName && performance.now() - last.at < 700) {
+        lastPointerActivation.current = null;
+        return;
+      }
+      action();
     };
 
   return (
@@ -47,8 +55,8 @@ export function AppSidebar({
       <div className="flex h-14 items-center gap-2 px-2">
         <button
           type="button"
-          onPointerDown={activate(() => setOpen((v) => !v))}
-          onKeyDown={activateFromKeyboard(() => setOpen((v) => !v))}
+          onPointerDown={activatePointer("alternar-menu", () => setOpen((v) => !v))}
+          onClick={activateClick("alternar-menu", () => setOpen((v) => !v))}
           aria-label={open ? "recolher menu" : "expandir menu"}
           title={open ? "recolher menu" : "expandir menu"}
           className="grid size-8 shrink-0 place-items-center rounded-lg text-base text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
@@ -69,8 +77,8 @@ export function AppSidebar({
             type="button"
             data-sidebar-action={item.key}
             disabled={item.soon}
-            onPointerDown={activate(() => onNavigate?.(item.key))}
-            onKeyDown={activateFromKeyboard(() => onNavigate?.(item.key))}
+            onPointerDown={activatePointer(item.key, () => onNavigate?.(item.key))}
+            onClick={activateClick(item.key, () => onNavigate?.(item.key))}
             aria-label={item.label}
             title={item.soon ? "em breve" : item.label}
             className={`${row} ${
@@ -89,8 +97,8 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="adicionar"
-          onPointerDown={activate(onAdd)}
-          onKeyDown={activateFromKeyboard(onAdd)}
+          onPointerDown={activatePointer("adicionar", onAdd)}
+          onClick={activateClick("adicionar", onAdd)}
           aria-label="adicionar"
           title="adicionar"
           className={`${row} text-foreground hover:bg-accent/60`}
@@ -101,8 +109,8 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="hoje"
-          onPointerDown={activate(onToday)}
-          onKeyDown={activateFromKeyboard(onToday)}
+          onPointerDown={activatePointer("hoje", onToday)}
+          onClick={activateClick("hoje", onToday)}
           aria-label="ir pra hoje"
           title="ir pra hoje"
           className={`${row} text-muted-foreground hover:bg-accent/60 hover:text-foreground`}
@@ -113,8 +121,8 @@ export function AppSidebar({
         <button
           type="button"
           data-sidebar-action="horizonte"
-          onPointerDown={activate(() => onNavigate?.("horizonte"))}
-          onKeyDown={activateFromKeyboard(() => onNavigate?.("horizonte"))}
+          onPointerDown={activatePointer("horizonte", () => onNavigate?.("horizonte"))}
+          onClick={activateClick("horizonte", () => onNavigate?.("horizonte"))}
           aria-label="horizonte"
           title="horizonte"
           className={`${row} ${
