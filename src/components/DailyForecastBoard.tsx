@@ -104,7 +104,7 @@ export function DailyForecastBoard({
           type="button"
           onClick={() => openForm()}
           aria-label="adicionar gasto"
-          className="grid size-10 shrink-0 place-items-center rounded-full border border-border text-lg text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          className="grid size-12 shrink-0 place-items-center rounded-full border-2 border-positive bg-positive text-xl text-positive-foreground shadow-sm transition-transform hover:scale-105 active:scale-95"
         >
           ＋
         </button>
