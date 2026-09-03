@@ -1051,11 +1051,13 @@ function Index() {
                 formDateParts.y === cursor.y && formDateParts.m === cursor.m
                   ? rows.list[formDateParts.d - 1] ?? null
                   : null;
-              const dayItems = dayRow?.items ?? [];
+              const dayItems = (dayRow?.items ?? []).filter(
+                (it) => it.recurrenceId !== FORECAST_ID,
+              );
               if (dayItems.length === 0) return null;
               return (
-                <div className="mb-3 space-y-1 rounded-2xl bg-card p-4">
-                  <div className="flex items-center justify-between gap-2">
+                <div className="mb-3 rounded-2xl bg-card p-4">
+                  <div className="flex items-center justify-between gap-2 pb-2">
                     <span className="text-xs font-medium text-muted-foreground">
                       lançamentos deste dia
                     </span>
@@ -1069,10 +1071,14 @@ function Index() {
                   </div>
                   <div className="divide-y divide-border">
                     {dayItems.map((it) => (
-                      <div key={it.key} className="flex items-center gap-2 py-2">
-                        <span className="min-w-0 flex-1 truncate text-sm text-foreground">
-                          {it.detail}
-                          <span className="text-muted-foreground"> · {it.title}</span>
+                      <div key={it.key} className="flex items-center gap-3 py-2.5">
+                        <span className="min-w-0 flex-1">
+                          <span className="block truncate text-sm font-medium text-foreground">
+                            {it.detail}
+                          </span>
+                          <span className="block truncate text-xs text-muted-foreground">
+                            {it.title}
+                          </span>
                         </span>
                         <span
                           className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[it.kind]}`}
@@ -1082,21 +1088,11 @@ function Index() {
                         <button
                           type="button"
                           onClick={() => deleteItems([it])}
-                          className={actionBtn}
-                          title="apagar só este valor"
+                          className={`${actionBtn} shrink-0`}
+                          title="apagar este lançamento"
                         >
                           apagar
                         </button>
-                        {it.recurrenceId && (
-                          <button
-                            type="button"
-                            onClick={() => removeRecurrence(it.recurrenceId!)}
-                            className={dangerBtn}
-                            title="apagar todas as parcelas dessa dívida"
-                          >
-                            todas
-                          </button>
-                        )}
                       </div>
                     ))}
                   </div>
