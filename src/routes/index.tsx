@@ -254,7 +254,7 @@ function Index() {
             ...prev,
             {
               id: FORECAST_ID,
-              kind: "saidas",
+              kind: "diarios",
               name: "previsão gasto diário",
               label: "gasto diário",
               tags: ["previsão"],
@@ -269,8 +269,10 @@ function Index() {
             } satisfies Recurrence,
           ];
         }
-        if (Math.abs(existing.amount - perDay) < 0.001) return prev;
-        return prev.map((r) => (r.id === FORECAST_ID ? { ...r, amount: perDay } : r));
+        if (Math.abs(existing.amount - perDay) < 0.001 && existing.kind === "diarios") return prev;
+        return prev.map((r) =>
+          r.id === FORECAST_ID ? { ...r, amount: perDay, kind: "diarios" } : r,
+        );
       }
       return existing ? prev.filter((r) => r.id !== FORECAST_ID) : prev;
     });
@@ -883,93 +885,20 @@ function Index() {
         </section>
 
         <section className="flex flex-wrap items-center gap-2 rounded-2xl border border-border bg-card p-3">
-          <button
-            onClick={() => {
-              setSelectMode((v) => !v);
-              setSelected({});
-            }}
-            className={chip(selectMode)}
-          >
-            {selectMode ? "sair da seleção" : "selecionar"}
-          </button>
-
-          {selectMode && (
+          {confirmAll === "tudo" ? (
             <>
-              <button onClick={() => selectMany(monthItems)} className={actionBtn}>
-                marcar todos do mês
-              </button>
-              {KINDS.map((k) => (
-                <button
-                  key={k.key}
-                  onClick={() => selectMany(monthItems.filter((i) => i.kind === k.key))}
-                  className={actionBtn}
-                >
-                  marcar {k.title}
-                </button>
-              ))}
-              <button onClick={() => setSelected({})} className={actionBtn}>
-                limpar seleção
-              </button>
-              <button
-                onClick={() => deleteItems(selectedList)}
-                disabled={selectedList.length === 0}
-                className={`${dangerBtn} disabled:opacity-40`}
-              >
-                apagar selecionados ({selectedList.length})
-              </button>
-            </>
-          )}
-
-          <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
-
-          {KINDS.map((k) => (
-            <button
-              key={k.key}
-              onClick={() => deleteItems(monthItems.filter((i) => i.kind === k.key))}
-              className={actionBtn}
-            >
-              apagar {k.title} do mês
-            </button>
-          ))}
-
-          <span className="mx-1 hidden h-5 w-px bg-border sm:block" />
-
-          <button onClick={undo} disabled={history.length === 0} className={`${actionBtn} disabled:opacity-40`}>
-            ↶ desfazer{history.length ? ` (${history.length})` : ""}
-          </button>
-          {confirmAll ? (
-            <>
-              <button
-                onClick={
-                  confirmAll === "mes" ? clearMonth : confirmAll === "ano" ? clearYear : deleteAll
-                }
-                className={dangerBtn}
-              >
-                confirmar:{" "}
-                {confirmAll === "mes"
-                  ? `zerar ${new Date(cursor.y, cursor.m, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" })}`
-                  : confirmAll === "ano"
-                    ? `zerar o ano ${cursor.y}`
-                    : "resetar o sistema"}
+              <button onClick={deleteAll} className={dangerBtn}>
+                confirmar: resetar tudo (sistema)
               </button>
               <button onClick={() => setConfirmAll(null)} className={actionBtn}>
                 cancelar
               </button>
             </>
           ) : (
-            <>
-              <button onClick={() => setConfirmAll("mes")} className={dangerBtn}>
-                zerar este mês
-              </button>
-              <button onClick={() => setConfirmAll("ano")} className={dangerBtn}>
-                zerar o ano {cursor.y}
-              </button>
-              <button onClick={() => setConfirmAll("tudo")} className={dangerBtn}>
-                resetar tudo (sistema)
-              </button>
-            </>
+            <button onClick={() => setConfirmAll("tudo")} className={dangerBtn}>
+              resetar tudo (sistema)
+            </button>
           )}
-
         </section>
 
 
@@ -1117,6 +1046,63 @@ function Index() {
               setShowCal(false);
             }}
           >
+            {(() => {
+              const dayRow =
+                formDateParts.y === cursor.y && formDateParts.m === cursor.m
+                  ? rows.list[formDateParts.d - 1] ?? null
+                  : null;
+              const dayItems = dayRow?.items ?? [];
+              if (dayItems.length === 0) return null;
+              return (
+                <div className="mb-3 space-y-1 rounded-2xl bg-card p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      lançamentos deste dia
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => deleteItems(dayItems)}
+                      className={dangerBtn}
+                    >
+                      apagar todos
+                    </button>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {dayItems.map((it) => (
+                      <div key={it.key} className="flex items-center gap-2 py-2">
+                        <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                          {it.detail}
+                          <span className="text-muted-foreground"> · {it.title}</span>
+                        </span>
+                        <span
+                          className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[it.kind]}`}
+                        >
+                          {brl(it.amount)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => deleteItems([it])}
+                          className={actionBtn}
+                          title="apagar só este valor"
+                        >
+                          apagar
+                        </button>
+                        {it.recurrenceId && (
+                          <button
+                            type="button"
+                            onClick={() => removeRecurrence(it.recurrenceId!)}
+                            className={dangerBtn}
+                            title="apagar todas as parcelas dessa dívida"
+                          >
+                            todas
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             <form onSubmit={saveEntry} className="space-y-3">
               {/* valor */}
               <div className="rounded-2xl bg-card p-4">
