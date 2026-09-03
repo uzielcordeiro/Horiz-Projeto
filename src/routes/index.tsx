@@ -269,8 +269,10 @@ function Index() {
             } satisfies Recurrence,
           ];
         }
-        if (Math.abs(existing.amount - perDay) < 0.001) return prev;
-        return prev.map((r) => (r.id === FORECAST_ID ? { ...r, amount: perDay } : r));
+        if (Math.abs(existing.amount - perDay) < 0.001 && existing.kind === "diarios") return prev;
+        return prev.map((r) =>
+          r.id === FORECAST_ID ? { ...r, amount: perDay, kind: "diarios" } : r,
+        );
       }
       return existing ? prev.filter((r) => r.id !== FORECAST_ID) : prev;
     });
