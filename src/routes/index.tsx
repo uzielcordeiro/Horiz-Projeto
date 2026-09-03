@@ -1117,6 +1117,63 @@ function Index() {
               setShowCal(false);
             }}
           >
+            {(() => {
+              const dayRow =
+                formDateParts.y === cursor.y && formDateParts.m === cursor.m
+                  ? rows.list[formDateParts.d - 1] ?? null
+                  : null;
+              const dayItems = dayRow?.items ?? [];
+              if (dayItems.length === 0) return null;
+              return (
+                <div className="mb-3 space-y-1 rounded-2xl bg-card p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-muted-foreground">
+                      lançamentos deste dia
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => deleteItems(dayItems)}
+                      className={dangerBtn}
+                    >
+                      apagar todos
+                    </button>
+                  </div>
+                  <div className="divide-y divide-border">
+                    {dayItems.map((it) => (
+                      <div key={it.key} className="flex items-center gap-2 py-2">
+                        <span className="min-w-0 flex-1 truncate text-sm text-foreground">
+                          {it.detail}
+                          <span className="text-muted-foreground"> · {it.title}</span>
+                        </span>
+                        <span
+                          className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[it.kind]}`}
+                        >
+                          {brl(it.amount)}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => deleteItems([it])}
+                          className={actionBtn}
+                          title="apagar só este valor"
+                        >
+                          apagar
+                        </button>
+                        {it.recurrenceId && (
+                          <button
+                            type="button"
+                            onClick={() => removeRecurrence(it.recurrenceId!)}
+                            className={dangerBtn}
+                            title="apagar todas as parcelas dessa dívida"
+                          >
+                            todas
+                          </button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
             <form onSubmit={saveEntry} className="space-y-3">
               {/* valor */}
               <div className="rounded-2xl bg-card p-4">
