@@ -254,7 +254,7 @@ function Index() {
             ...prev,
             {
               id: FORECAST_ID,
-              kind: "saidas",
+              kind: "diarios",
               name: "previsão gasto diário",
               label: "gasto diário",
               tags: ["previsão"],
