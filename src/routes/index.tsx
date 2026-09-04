@@ -1071,29 +1071,20 @@ function Index() {
                   </div>
                   <div className="divide-y divide-border">
                     {dayItems.map((it) => (
-                      <div key={it.key} className="flex items-center gap-3 py-2.5">
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-foreground">
-                            {it.detail}
-                          </span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {it.title}
-                          </span>
-                        </span>
-                        <span
-                          className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[it.kind]}`}
-                        >
-                          {brl(it.amount)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => deleteItems([it])}
-                          className={`${actionBtn} shrink-0`}
-                          title="apagar este lançamento"
-                        >
-                          apagar
-                        </button>
-                      </div>
+                      <DayItemDeleteRow
+                        key={it.key}
+                        item={it}
+                        onDeleteEntry={() => deleteItems([it])}
+                        onSkip={() =>
+                          it.recurrenceId && skipOccurrence(it.recurrenceId, it.date)
+                        }
+                        onEndFrom={() =>
+                          it.recurrenceId && endRecurrenceFrom(it.recurrenceId, it.date)
+                        }
+                        onRemoveRecurrence={() =>
+                          it.recurrenceId && removeRecurrence(it.recurrenceId)
+                        }
+                      />
                     ))}
                   </div>
                 </div>
