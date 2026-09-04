@@ -108,6 +108,14 @@ const dotClass: Record<Status, string> = {
   negative: "bg-negative",
 };
 
+const kindTone: Record<Kind, string> = {
+  entradas: "text-positive",
+  saidas: "text-negative",
+  diarios: "text-negative",
+  economias: "text-foreground",
+  cartao: "text-negative",
+};
+
 function parseAmount(input: string) {
   const n = Number(input.replace(/\s|R\$/g, "").replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? n : NaN;
