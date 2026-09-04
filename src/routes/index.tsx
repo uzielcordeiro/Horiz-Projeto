@@ -108,6 +108,14 @@ const dotClass: Record<Status, string> = {
   negative: "bg-negative",
 };
 
+const kindTone: Record<Kind, string> = {
+  entradas: "text-positive",
+  saidas: "text-negative",
+  diarios: "text-negative",
+  economias: "text-foreground",
+  cartao: "text-negative",
+};
+
 function parseAmount(input: string) {
   const n = Number(input.replace(/\s|R\$/g, "").replace(/\./g, "").replace(",", "."));
   return Number.isFinite(n) ? n : NaN;
@@ -134,6 +142,95 @@ type DayItem = {
 };
 
 type Freq = "unico" | "diario" | "mensal" | "semanal";
+
+function DayItemDeleteRow({
+  item,
+  onDeleteEntry,
+  onSkip,
+  onEndFrom,
+  onRemoveRecurrence,
+}: {
+  item: DayItem;
+  onDeleteEntry: () => void;
+  onSkip: () => void;
+  onEndFrom: () => void;
+  onRemoveRecurrence: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const isRecurrence = Boolean(item.recurrenceId);
+
+  return (
+    <div className="py-2.5">
+      <div className="flex items-center gap-3">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-foreground">
+            {item.detail}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {item.title}
+          </span>
+        </span>
+        <span
+          className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[item.kind]}`}
+        >
+          {brl(item.amount)}
+        </span>
+        {isRecurrence ? (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="h-8 shrink-0 rounded-lg border border-negative/40 bg-negative/10 px-2.5 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
+          >
+            {open ? "cancelar" : "apagar"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onDeleteEntry}
+            className="h-8 shrink-0 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            apagar
+          </button>
+        )}
+      </div>
+      {open && isRecurrence && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">apagar lançamento:</span>
+          <button
+            type="button"
+            onClick={() => {
+              onSkip();
+              setOpen(false);
+            }}
+            className="h-7 rounded-lg border border-input bg-background px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            só esta
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onEndFrom();
+              setOpen(false);
+            }}
+            className="h-7 rounded-lg border border-negative/40 bg-negative/10 px-2 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
+          >
+            desta data em diante
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onRemoveRecurrence();
+              setOpen(false);
+            }}
+            className="h-7 rounded-lg border border-negative/40 bg-negative/10 px-2 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
+          >
+            dívida inteira
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function Index() {
   const today = new Date();
@@ -699,14 +796,6 @@ function Index() {
   const isToday = (day: number) =>
     cursor.y === today.getFullYear() && cursor.m === today.getMonth() && day === today.getDate();
 
-  const kindTone: Record<Kind, string> = {
-    entradas: "text-positive",
-    saidas: "text-negative",
-    diarios: "text-negative",
-    economias: "text-foreground",
-    cartao: "text-negative",
-  };
-
   const kindBadge: Record<Kind, string> = {
     entradas: "bg-positive text-positive-foreground",
     saidas: "bg-negative text-negative-foreground",
@@ -1071,29 +1160,20 @@ function Index() {
                   </div>
                   <div className="divide-y divide-border">
                     {dayItems.map((it) => (
-                      <div key={it.key} className="flex items-center gap-3 py-2.5">
-                        <span className="min-w-0 flex-1">
-                          <span className="block truncate text-sm font-medium text-foreground">
-                            {it.detail}
-                          </span>
-                          <span className="block truncate text-xs text-muted-foreground">
-                            {it.title}
-                          </span>
-                        </span>
-                        <span
-                          className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[it.kind]}`}
-                        >
-                          {brl(it.amount)}
-                        </span>
-                        <button
-                          type="button"
-                          onClick={() => deleteItems([it])}
-                          className={`${actionBtn} shrink-0`}
-                          title="apagar este lançamento"
-                        >
-                          apagar
-                        </button>
-                      </div>
+                      <DayItemDeleteRow
+                        key={it.key}
+                        item={it}
+                        onDeleteEntry={() => deleteItems([it])}
+                        onSkip={() =>
+                          it.recurrenceId && skipOccurrence(it.recurrenceId, it.date)
+                        }
+                        onEndFrom={() =>
+                          it.recurrenceId && endRecurrenceFrom(it.recurrenceId, it.date)
+                        }
+                        onRemoveRecurrence={() =>
+                          it.recurrenceId && removeRecurrence(it.recurrenceId)
+                        }
+                      />
                     ))}
                   </div>
                 </div>
