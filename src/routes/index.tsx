@@ -135,6 +135,95 @@ type DayItem = {
 
 type Freq = "unico" | "diario" | "mensal" | "semanal";
 
+function DayItemDeleteRow({
+  item,
+  onDeleteEntry,
+  onSkip,
+  onEndFrom,
+  onRemoveRecurrence,
+}: {
+  item: DayItem;
+  onDeleteEntry: () => void;
+  onSkip: () => void;
+  onEndFrom: () => void;
+  onRemoveRecurrence: () => void;
+}) {
+  const [open, setOpen] = useState(false);
+  const isRecurrence = Boolean(item.recurrenceId);
+
+  return (
+    <div className="py-2.5">
+      <div className="flex items-center gap-3">
+        <span className="min-w-0 flex-1">
+          <span className="block truncate text-sm font-medium text-foreground">
+            {item.detail}
+          </span>
+          <span className="block truncate text-xs text-muted-foreground">
+            {item.title}
+          </span>
+        </span>
+        <span
+          className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[item.kind]}`}
+        >
+          {brl(item.amount)}
+        </span>
+        {isRecurrence ? (
+          <button
+            type="button"
+            onClick={() => setOpen((v) => !v)}
+            className="h-8 shrink-0 rounded-lg border border-negative/40 bg-negative/10 px-2.5 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
+          >
+            {open ? "cancelar" : "apagar"}
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={onDeleteEntry}
+            className="h-8 shrink-0 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            apagar
+          </button>
+        )}
+      </div>
+      {open && isRecurrence && (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <span className="text-xs text-muted-foreground">apagar lançamento:</span>
+          <button
+            type="button"
+            onClick={() => {
+              onSkip();
+              setOpen(false);
+            }}
+            className="h-7 rounded-lg border border-input bg-background px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+          >
+            só esta
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onEndFrom();
+              setOpen(false);
+            }}
+            className="h-7 rounded-lg border border-negative/40 bg-negative/10 px-2 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
+          >
+            desta data em diante
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              onRemoveRecurrence();
+              setOpen(false);
+            }}
+            className="h-7 rounded-lg border border-negative/40 bg-negative/10 px-2 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
+          >
+            dívida inteira
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function Index() {
   const today = new Date();
   const tableRef = useRef<HTMLElement>(null);
