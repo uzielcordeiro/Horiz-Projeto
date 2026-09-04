@@ -796,14 +796,6 @@ function Index() {
   const isToday = (day: number) =>
     cursor.y === today.getFullYear() && cursor.m === today.getMonth() && day === today.getDate();
 
-  const kindTone: Record<Kind, string> = {
-    entradas: "text-positive",
-    saidas: "text-negative",
-    diarios: "text-negative",
-    economias: "text-foreground",
-    cartao: "text-negative",
-  };
-
   const kindBadge: Record<Kind, string> = {
     entradas: "bg-positive text-positive-foreground",
     saidas: "bg-negative text-negative-foreground",
