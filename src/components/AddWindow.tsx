@@ -162,7 +162,7 @@ function DeleteOption({
   const base =
     tone === "negative"
       ? "text-negative hover:bg-negative hover:text-negative-foreground"
-      : "text-warning-foreground hover:bg-warning hover:text-warning-foreground";
+      : "text-warning hover:bg-warning hover:text-warning-foreground";
   const active =
     tone === "negative"
       ? "bg-negative text-negative-foreground"
