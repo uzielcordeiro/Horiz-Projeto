@@ -1136,14 +1136,20 @@ function Index() {
           const windowDayItems = (windowDayRow?.items ?? []).filter(
             (it) => it.recurrenceId !== FORECAST_ID,
           );
+          const monthPrefix = iso(formDateParts.y, formDateParts.m, 1).slice(0, 7);
+          const monthHasItems =
+            entries.some((e) => e.date.startsWith(monthPrefix)) ||
+            recurrences.some((r) => occurrencesInMonth(r, formDateParts.y, formDateParts.m).length > 0);
           return (
           <AddWindow
             subtitle={new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
               "pt-BR",
               { day: "2-digit", month: "long", year: "numeric" },
             )}
-            onDelete={() => deleteItems(windowDayItems)}
-            deleteDisabled={windowDayItems.length === 0}
+            onDeleteDay={() => deleteItems(windowDayItems)}
+            onDeleteMonth={() => clearMonthForDate(formDateParts.y, formDateParts.m)}
+            deleteDayDisabled={windowDayItems.length === 0}
+            deleteMonthDisabled={!monthHasItems}
             onClose={() => {
               setAdding(false);
               setError(null);
