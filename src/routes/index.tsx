@@ -1123,12 +1123,22 @@ function Index() {
 
 
 
-        {adding && (
+        {adding && (() => {
+          const windowDayRow =
+            formDateParts.y === cursor.y && formDateParts.m === cursor.m
+              ? rows.list[formDateParts.d - 1] ?? null
+              : null;
+          const windowDayItems = (windowDayRow?.items ?? []).filter(
+            (it) => it.recurrenceId !== FORECAST_ID,
+          );
+          return (
           <AddWindow
             subtitle={new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
               "pt-BR",
               { day: "2-digit", month: "long", year: "numeric" },
             )}
+            onDelete={() => deleteItems(windowDayItems)}
+            deleteDisabled={windowDayItems.length === 0}
             onClose={() => {
               setAdding(false);
               setError(null);
@@ -1136,13 +1146,7 @@ function Index() {
             }}
           >
             {(() => {
-              const dayRow =
-                formDateParts.y === cursor.y && formDateParts.m === cursor.m
-                  ? rows.list[formDateParts.d - 1] ?? null
-                  : null;
-              const dayItems = (dayRow?.items ?? []).filter(
-                (it) => it.recurrenceId !== FORECAST_ID,
-              );
+              const dayItems = windowDayItems;
               if (dayItems.length === 0) return null;
               return (
                 <div className="mb-3 rounded-2xl bg-card p-4">
@@ -1449,7 +1453,8 @@ function Index() {
               </button>
             </form>
           </AddWindow>
-        )}
+          );
+        })()}
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
