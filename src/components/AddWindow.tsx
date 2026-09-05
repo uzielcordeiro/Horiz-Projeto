@@ -95,7 +95,6 @@ export function AddWindow({
                   role="menu"
                 >
                   <DeleteOption
-                    kind="day"
                     label={confirming === "day" ? "confirmar" : "apagar este dia"}
                     disabled={deleteDayDisabled}
                     confirming={confirming === "day"}
@@ -112,7 +111,6 @@ export function AddWindow({
                     }}
                   />
                   <DeleteOption
-                    kind="month"
                     label={confirming === "month" ? "confirmar" : "apagar este mês"}
                     disabled={deleteMonthDisabled}
                     confirming={confirming === "month"}
