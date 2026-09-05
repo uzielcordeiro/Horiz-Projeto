@@ -1453,7 +1453,8 @@ function Index() {
               </button>
             </form>
           </AddWindow>
-        )}
+          );
+        })()}
         </div>
 
         <p className="text-center text-xs text-muted-foreground">
