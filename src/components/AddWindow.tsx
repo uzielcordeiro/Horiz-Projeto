@@ -1,13 +1,26 @@
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 
 type Props = {
   title?: string;
   subtitle?: string;
   onClose: () => void;
+  onDelete?: () => void;
+  deleteDisabled?: boolean;
+  deleteLabel?: string;
   children: ReactNode;
 };
 
-export function AddWindow({ title = "adicionar", subtitle, onClose, children }: Props) {
+export function AddWindow({
+  title = "adicionar",
+  subtitle,
+  onClose,
+  onDelete,
+  deleteDisabled = false,
+  deleteLabel = "apagar lançamentos deste dia",
+  children,
+}: Props) {
+  const [confirming, setConfirming] = useState(false);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -15,6 +28,12 @@ export function AddWindow({ title = "adicionar", subtitle, onClose, children }: 
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
   }, [onClose]);
+
+  useEffect(() => {
+    if (!confirming) return;
+    const t = setTimeout(() => setConfirming(false), 4000);
+    return () => clearTimeout(t);
+  }, [confirming]);
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
