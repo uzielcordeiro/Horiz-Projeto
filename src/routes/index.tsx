@@ -783,6 +783,11 @@ function Index() {
     ]);
   }
 
+  function clearMonthForDate(y: number, m: number) {
+    const last = new Date(y, m + 1, 0).getDate();
+    clearRange(iso(y, m, 1), iso(y, m, last), [{ y, m }]);
+  }
+
   function clearYear() {
     clearRange(
       iso(cursor.y, 0, 1),
