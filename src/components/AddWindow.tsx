@@ -78,15 +78,15 @@ export function AddWindow({
                   setMenuOpen((v) => !v);
                   setConfirming(null);
                 }}
-                className={`grid h-9 w-9 shrink-0 place-items-center rounded-full border text-xs font-semibold transition-all ${
+                className={`flex h-9 shrink-0 items-center justify-center rounded-full px-3.5 text-xs font-bold uppercase tracking-wide transition-all ${
                   bothDisabled
-                    ? "cursor-not-allowed border-border text-muted-foreground/50"
+                    ? "cursor-not-allowed bg-muted text-muted-foreground/50"
                     : menuOpen || confirming
-                      ? "border-negative bg-negative text-negative-foreground shadow-md"
-                      : "border-negative/40 bg-negative/10 text-negative hover:bg-negative hover:text-negative-foreground"
+                      ? "bg-negative text-negative-foreground shadow-lg"
+                      : "bg-negative text-negative-foreground shadow hover:brightness-110"
                 }`}
               >
-                <span aria-hidden className="text-base">🗑</span>
+                apagar
               </button>
 
               {menuOpen && (
