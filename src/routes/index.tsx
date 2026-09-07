@@ -57,11 +57,12 @@ const FORECAST_KEY = "timeline-forecast-v1";
 const FORECAST_DIVISOR_KEY = "timeline-forecast-divisor-v1";
 const FORECAST_ID = "forecast-auto";
 
-const KINDS: { key: Kind; title: string; sign: 1 | -1 }[] = [
+const KINDS: { key: Kind; title: string; sign: 1 | -1 | 0 }[] = [
   { key: "entradas", title: "entradas", sign: 1 },
   { key: "saidas", title: "saídas", sign: -1 },
   { key: "diarios", title: "diários", sign: -1 },
-  { key: "economias", title: "economias", sign: -1 },
+  // economias é independente: não entra no saldo (sign 0)
+  { key: "economias", title: "economias", sign: 0 },
   { key: "cartao", title: "cartão", sign: -1 },
 ];
 
@@ -133,7 +134,7 @@ type DayItem = {
   key: string;
   kind: Kind;
   title: string;
-  sign: 1 | -1;
+  sign: 1 | -1 | 0;
   amount: number;
   detail: string;
   entryId?: string;
@@ -383,7 +384,9 @@ function Index() {
     const openingDate = iso(cursor.y, cursor.m, 1);
     const opening =
       signedTotal(sorted.filter((e) => e.date < openingDate)) -
-      recurrences.reduce((s, r) => s + sumBefore(r, openingDate), 0);
+      recurrences
+        .filter((r) => r.kind !== "economias")
+        .reduce((s, r) => s + sumBefore(r, openingDate), 0);
 
     const byDate = new Map<string, Occurrence[]>();
     for (const r of recurrences) {
@@ -495,7 +498,9 @@ function Index() {
       // saldo de abertura do mês
       let running =
         signedTotal(sorted.filter((e) => e.date < first)) -
-        recurrences.reduce((s, r) => s + sumBefore(r, first), 0);
+        recurrences
+          .filter((r) => r.kind !== "economias")
+          .reduce((s, r) => s + sumBefore(r, first), 0);
 
       const byDate = new Map<string, number>();
       for (const e of sorted) {
