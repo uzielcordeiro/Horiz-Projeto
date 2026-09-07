@@ -21,32 +21,43 @@ export function AppSidebar({
   active?: string;
 }) {
   const [open, setOpen] = useState(true);
-  const pointerActivations = useRef(new Map<string, number>());
+  // Pending pointerdown activations per action. A counter (not a timestamp)
+  // keeps deduplication correct when rapid presses interleave their
+  // pointerdown/click pairs: every pointerdown adds one credit and the
+  // matching native click consumes exactly one, so an action never runs twice.
+  const pending = useRef(new Map<string, number>());
 
   const row =
     "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors";
 
   // Keep both events: pointerdown gives immediate response, while click is a
   // browser-native fallback if a rapid pointer sequence drops pointerdown.
-  // Keep a timestamp per action: rapid alternating presses can interleave their
-  // pointerdown/click pairs, so one shared "last action" loses deduplication.
   const activatePointer =
     (actionName: string, action: () => void) => (event: PointerEvent<HTMLButtonElement>) => {
-    if (!event.isPrimary || event.button !== 0) return;
-    pointerActivations.current.set(actionName, performance.now());
-    action();
-  };
-
-  const activateClick =
-    (actionName: string, action: () => void) => (event: MouseEvent<HTMLButtonElement>) => {
-      const pointerAt = pointerActivations.current.get(actionName);
-      if (pointerAt !== undefined && performance.now() - pointerAt < 700) {
-        pointerActivations.current.delete(actionName);
-        return;
-      }
-      pointerActivations.current.delete(actionName);
+      if (!event.isPrimary || event.button !== 0) return;
+      pending.current.set(actionName, (pending.current.get(actionName) ?? 0) + 1);
+      // Drop the credit if the matching click never arrives (pointer cancelled
+      // or released outside), so it can never swallow a later real click.
+      window.setTimeout(() => {
+        const left = pending.current.get(actionName) ?? 0;
+        if (left > 1) pending.current.set(actionName, left - 1);
+        else pending.current.delete(actionName);
+      }, 800);
       action();
     };
+
+
+  const activateClick =
+    (actionName: string, action: () => void) => (_event: MouseEvent<HTMLButtonElement>) => {
+      const credits = pending.current.get(actionName) ?? 0;
+      if (credits > 0) {
+        if (credits > 1) pending.current.set(actionName, credits - 1);
+        else pending.current.delete(actionName);
+        return;
+      }
+      action();
+    };
+
 
   return (
     <aside
