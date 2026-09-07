@@ -36,8 +36,16 @@ export function AppSidebar({
     (actionName: string, action: () => void) => (event: PointerEvent<HTMLButtonElement>) => {
       if (!event.isPrimary || event.button !== 0) return;
       pending.current.set(actionName, (pending.current.get(actionName) ?? 0) + 1);
+      // Drop the credit if the matching click never arrives (pointer cancelled
+      // or released outside), so it can never swallow a later real click.
+      window.setTimeout(() => {
+        const left = pending.current.get(actionName) ?? 0;
+        if (left > 1) pending.current.set(actionName, left - 1);
+        else pending.current.delete(actionName);
+      }, 800);
       action();
     };
+
 
   const activateClick =
     (actionName: string, action: () => void) => (_event: MouseEvent<HTMLButtonElement>) => {
