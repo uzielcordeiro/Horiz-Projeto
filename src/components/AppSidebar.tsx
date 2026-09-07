@@ -21,28 +21,30 @@ export function AppSidebar({
   active?: string;
 }) {
   const [open, setOpen] = useState(true);
-  const lastPointerActivation = useRef<{ action: string; at: number } | null>(null);
+  const pointerActivations = useRef(new Map<string, number>());
 
   const row =
     "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors";
 
   // Keep both events: pointerdown gives immediate response, while click is a
   // browser-native fallback if a rapid pointer sequence drops pointerdown.
-  // The timestamp guard guarantees that one physical press runs only once.
+  // Keep a timestamp per action: rapid alternating presses can interleave their
+  // pointerdown/click pairs, so one shared "last action" loses deduplication.
   const activatePointer =
     (actionName: string, action: () => void) => (event: PointerEvent<HTMLButtonElement>) => {
     if (!event.isPrimary || event.button !== 0) return;
-    lastPointerActivation.current = { action: actionName, at: performance.now() };
+    pointerActivations.current.set(actionName, performance.now());
     action();
   };
 
   const activateClick =
     (actionName: string, action: () => void) => (event: MouseEvent<HTMLButtonElement>) => {
-      const last = lastPointerActivation.current;
-      if (last && last.action === actionName && performance.now() - last.at < 700) {
-        lastPointerActivation.current = null;
+      const pointerAt = pointerActivations.current.get(actionName);
+      if (pointerAt !== undefined && performance.now() - pointerAt < 700) {
+        pointerActivations.current.delete(actionName);
         return;
       }
+      pointerActivations.current.delete(actionName);
       action();
     };
 
