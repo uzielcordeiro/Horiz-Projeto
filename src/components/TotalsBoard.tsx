@@ -80,7 +80,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
             formula={
               <>
                 <Dot k="entradas" />－<Dot k="saidas" />－<Dot k="diarios" />－
-                <Dot k="economias" />－<Dot k="cartao" />
+                <Dot k="cartao" />
               </>
             }
             value={brl(performance)}
