@@ -64,7 +64,8 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
   const { totals, diaryDays, remainingDays } = data;
 
   const custoVida = totals.saidas + totals.diarios + totals.cartao;
-  const performance = totals.entradas - custoVida - totals.economias;
+  // economias é independente: não entra na performance
+  const performance = totals.entradas - custoVida;
   const economizado = totals.entradas > 0 ? (totals.economias / totals.entradas) * 100 : 0;
   const diarioMedio = diaryDays > 0 ? totals.diarios / diaryDays : 0;
   const previsao = diarioMedio * remainingDays;
@@ -79,7 +80,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
             formula={
               <>
                 <Dot k="entradas" />－<Dot k="saidas" />－<Dot k="diarios" />－
-                <Dot k="economias" />－<Dot k="cartao" />
+                <Dot k="cartao" />
               </>
             }
             value={brl(performance)}
