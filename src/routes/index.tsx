@@ -855,6 +855,7 @@ function Index() {
           const day = selectedDay ?? (sameMonth ? today.getDate() : 1);
           setSelectedDay(day);
           setFormDate(iso(cursor.y, cursor.m, day));
+          setKind("entradas");
           setAdding(true);
         }}
         onToday={goToday}
@@ -930,6 +931,7 @@ function Index() {
               setCursor({ y, m });
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
+              setKind("entradas");
               setAdding(true);
             }}
           />
@@ -958,6 +960,7 @@ function Index() {
               const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
               const day = sameMonth ? today.getDate() : 1;
               setFormDate(iso(cursor.y, cursor.m, day));
+              setKind("entradas");
               setAdding(true);
             }}
           />
