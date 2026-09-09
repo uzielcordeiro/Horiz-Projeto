@@ -122,6 +122,9 @@ function parseAmount(input: string) {
   return Number.isFinite(n) ? n : NaN;
 }
 
+// campo de valor: aceita apenas números, vírgula e ponto
+const sanitizeAmountInput = (v: string) => v.replace(/[^\d.,]/g, "");
+
 const signedTotal = (list: Entry[]) =>
   list.reduce((sum, e) => {
     const k = KINDS.find((x) => x.key === e.kind);
@@ -852,6 +855,7 @@ function Index() {
           const day = selectedDay ?? (sameMonth ? today.getDate() : 1);
           setSelectedDay(day);
           setFormDate(iso(cursor.y, cursor.m, day));
+          setKind("entradas");
           setAdding(true);
         }}
         onToday={goToday}
@@ -927,6 +931,7 @@ function Index() {
               setCursor({ y, m });
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
+              setKind("entradas");
               setAdding(true);
             }}
           />
@@ -955,6 +960,7 @@ function Index() {
               const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
               const day = sameMonth ? today.getDate() : 1;
               setFormDate(iso(cursor.y, cursor.m, day));
+              setKind("entradas");
               setAdding(true);
             }}
           />
@@ -1057,11 +1063,15 @@ function Index() {
                 return (
                   <div key={row.date} data-day-row={row.date}>
                     <button
-                      onClick={() => {
+                      onClick={(ev) => {
                         setError(null);
                         setShowCal(false);
                         setSelectedDay(row.day);
                         setFormDate(row.date);
+                        const clickedKind = (ev.target as HTMLElement)
+                          .closest("[data-kind]")
+                          ?.getAttribute("data-kind") as Kind | null;
+                        setKind(clickedKind ?? "entradas");
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
@@ -1080,6 +1090,7 @@ function Index() {
                       {KINDS.map((k) => (
                         <span
                           key={k.key}
+                          data-kind={k.key}
                           className={`flex items-center justify-end truncate border-l border-border/70 px-2 text-sm tabular-nums ${
                             row.totals[k.key] > 0
                               ? `font-medium ${kindTone[k.key]}`
@@ -1210,7 +1221,7 @@ function Index() {
                   inputMode="decimal"
                   maxLength={20}
                   value={amount}
-                  onChange={(ev) => setAmount(ev.target.value)}
+                  onChange={(ev) => setAmount(sanitizeAmountInput(ev.target.value))}
                   placeholder="0,00"
                   className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 font-display text-2xl font-bold tabular-nums text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
