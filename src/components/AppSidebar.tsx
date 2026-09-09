@@ -21,11 +21,10 @@ export function AppSidebar({
   active?: string;
 }) {
   const [open, setOpen] = useState(true);
-  // Pending pointerdown activations per action. A counter (not a timestamp)
-  // keeps deduplication correct when rapid presses interleave their
-  // pointerdown/click pairs: every pointerdown adds one credit and the
-  // matching native click consumes exactly one, so an action never runs twice.
-  const pending = useRef(new Map<string, number>());
+  // Pair each immediate pointerdown activation with its own native click.
+  // Tracking the browser pointer id prevents rapid presses on different rows
+  // from consuming each other's fallback clicks.
+  const pending = useRef(new Map<string, Map<number, number>>());
 
   const row =
     "flex w-full cursor-pointer touch-manipulation select-none items-center gap-3 rounded-xl px-2 py-2 text-left text-sm font-medium transition-colors";
@@ -35,24 +34,22 @@ export function AppSidebar({
   const activatePointer =
     (actionName: string, action: () => void) => (event: PointerEvent<HTMLButtonElement>) => {
       if (!event.isPrimary || event.button !== 0) return;
-      pending.current.set(actionName, (pending.current.get(actionName) ?? 0) + 1);
-      // Drop the credit if the matching click never arrives (pointer cancelled
-      // or released outside), so it can never swallow a later real click.
-      window.setTimeout(() => {
-        const left = pending.current.get(actionName) ?? 0;
-        if (left > 1) pending.current.set(actionName, left - 1);
-        else pending.current.delete(actionName);
-      }, 800);
+      const actionPointers = pending.current.get(actionName) ?? new Map<number, number>();
+      actionPointers.set(event.pointerId, (actionPointers.get(event.pointerId) ?? 0) + 1);
+      pending.current.set(actionName, actionPointers);
       action();
     };
 
 
   const activateClick =
-    (actionName: string, action: () => void) => (_event: MouseEvent<HTMLButtonElement>) => {
-      const credits = pending.current.get(actionName) ?? 0;
-      if (credits > 0) {
-        if (credits > 1) pending.current.set(actionName, credits - 1);
-        else pending.current.delete(actionName);
+    (actionName: string, action: () => void) => (event: MouseEvent<HTMLButtonElement>) => {
+      const pointerId = (event.nativeEvent as { pointerId?: number }).pointerId;
+      const actionPointers = pending.current.get(actionName);
+      const credits = pointerId === undefined ? 0 : (actionPointers?.get(pointerId) ?? 0);
+      if (actionPointers && pointerId !== undefined && credits > 0) {
+        if (credits > 1) actionPointers.set(pointerId, credits - 1);
+        else actionPointers.delete(pointerId);
+        if (actionPointers.size === 0) pending.current.delete(actionName);
         return;
       }
       action();
