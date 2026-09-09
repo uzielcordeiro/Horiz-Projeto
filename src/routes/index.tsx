@@ -1060,11 +1060,15 @@ function Index() {
                 return (
                   <div key={row.date} data-day-row={row.date}>
                     <button
-                      onClick={() => {
+                      onClick={(ev) => {
                         setError(null);
                         setShowCal(false);
                         setSelectedDay(row.day);
                         setFormDate(row.date);
+                        const clickedKind = (ev.target as HTMLElement)
+                          .closest("[data-kind]")
+                          ?.getAttribute("data-kind") as Kind | null;
+                        setKind(clickedKind ?? "entradas");
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
@@ -1083,6 +1087,7 @@ function Index() {
                       {KINDS.map((k) => (
                         <span
                           key={k.key}
+                          data-kind={k.key}
                           className={`flex items-center justify-end truncate border-l border-border/70 px-2 text-sm tabular-nums ${
                             row.totals[k.key] > 0
                               ? `font-medium ${kindTone[k.key]}`
