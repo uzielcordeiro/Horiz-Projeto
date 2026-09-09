@@ -214,7 +214,7 @@ export function DailyForecastBoard({
               <span className="text-xs text-muted-foreground">valor</span>
               <input
                 value={amount}
-                onChange={(e) => setAmount(e.target.value)}
+                onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
                 inputMode="decimal"
                 placeholder="450,00"
                 className={field}

@@ -122,6 +122,9 @@ function parseAmount(input: string) {
   return Number.isFinite(n) ? n : NaN;
 }
 
+// campo de valor: aceita apenas números, vírgula e ponto
+const sanitizeAmountInput = (v: string) => v.replace(/[^\d.,]/g, "");
+
 const signedTotal = (list: Entry[]) =>
   list.reduce((sum, e) => {
     const k = KINDS.find((x) => x.key === e.kind);
@@ -1210,7 +1213,7 @@ function Index() {
                   inputMode="decimal"
                   maxLength={20}
                   value={amount}
-                  onChange={(ev) => setAmount(ev.target.value)}
+                  onChange={(ev) => setAmount(sanitizeAmountInput(ev.target.value))}
                   placeholder="0,00"
                   className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 font-display text-2xl font-bold tabular-nums text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />
