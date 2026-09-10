@@ -201,6 +201,13 @@ function DayItemDeleteRow({
         >
           {brl(item.amount)}
         </span>
+        <button
+          type="button"
+          onClick={() => (editing ? setEditing(false) : startEdit())}
+          className="h-8 shrink-0 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          {editing ? "cancelar" : "editar"}
+        </button>
         {isRecurrence ? (
           <button
             type="button"
