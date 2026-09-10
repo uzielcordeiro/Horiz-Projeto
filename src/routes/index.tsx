@@ -153,15 +153,37 @@ function DayItemDeleteRow({
   onSkip,
   onEndFrom,
   onRemoveRecurrence,
+  onEditAmount,
 }: {
   item: DayItem;
   onDeleteEntry: () => void;
   onSkip: () => void;
   onEndFrom: () => void;
   onRemoveRecurrence: () => void;
+  onEditAmount: (value: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   const isRecurrence = Boolean(item.recurrenceId);
+
+  const startEdit = () => {
+    setOpen(false);
+    setDraft(
+      item.amount.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    );
+    setEditing(true);
+  };
+
+  const confirmEdit = () => {
+    const value = parseAmount(draft);
+    if (!Number.isFinite(value) || value <= 0) return;
+    onEditAmount(value);
+    setEditing(false);
+  };
 
   return (
     <div className="py-2.5">
@@ -179,6 +201,13 @@ function DayItemDeleteRow({
         >
           {brl(item.amount)}
         </span>
+        <button
+          type="button"
+          onClick={() => (editing ? setEditing(false) : startEdit())}
+          className="h-8 shrink-0 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
+        >
+          {editing ? "cancelar" : "editar"}
+        </button>
         {isRecurrence ? (
           <button
             type="button"
@@ -197,6 +226,37 @@ function DayItemDeleteRow({
           </button>
         )}
       </div>
+      {editing && (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            autoFocus
+            inputMode="decimal"
+            maxLength={20}
+            value={draft}
+            onChange={(ev) => setDraft(sanitizeAmountInput(ev.target.value))}
+            onKeyDown={(ev) => {
+              if (ev.key === "Enter") {
+                ev.preventDefault();
+                confirmEdit();
+              }
+            }}
+            placeholder="0,00"
+            className="h-9 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm font-semibold tabular-nums text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+          />
+          <button
+            type="button"
+            onClick={confirmEdit}
+            className="h-9 shrink-0 rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground transition-all hover:brightness-110"
+          >
+            salvar
+          </button>
+        </div>
+      )}
+      {editing && isRecurrence && (
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          o novo valor vale para todas as parcelas desta recorrência
+        </p>
+      )}
       {open && isRecurrence && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">apagar lançamento:</span>
@@ -728,6 +788,22 @@ function Index() {
     );
   }
 
+  /** edita o valor de um lançamento avulso */
+  function updateEntryAmount(id: string, value: number) {
+    commit(
+      entries.map((e) => (e.id === id ? { ...e, amount: value } : e)),
+      recurrences,
+    );
+  }
+
+  /** edita o valor de uma parcela/recorrência (vale para todas as ocorrências) */
+  function updateRecurrenceAmount(recurrenceId: string, value: number) {
+    commit(
+      entries,
+      recurrences.map((r) => (r.id === recurrenceId ? { ...r, amount: value } : r)),
+    );
+  }
+
   function skipOccurrence(recurrenceId: string, date: string) {
     commit(
       entries,
@@ -1208,6 +1284,10 @@ function Index() {
                         onRemoveRecurrence={() =>
                           it.recurrenceId && removeRecurrence(it.recurrenceId)
                         }
+                        onEditAmount={(value) => {
+                          if (it.recurrenceId) updateRecurrenceAmount(it.recurrenceId, value);
+                          else if (it.entryId) updateEntryAmount(it.entryId, value);
+                        }}
                       />
                     ))}
                   </div>
