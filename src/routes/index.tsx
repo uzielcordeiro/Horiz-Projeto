@@ -502,10 +502,12 @@ function Index() {
 
       // saldo de abertura do mês
       let running =
-        signedTotal(sorted.filter((e) => e.date < first)) -
-        recurrences
-          .filter((r) => r.kind !== "economias")
-          .reduce((s, r) => s + sumBefore(r, first), 0);
+        signedTotal(sorted.filter((e) => e.date < first)) +
+        recurrences.reduce((s, r) => {
+          const k = KINDS.find((x) => x.key === r.kind);
+          if (!k || k.sign === 0) return s;
+          return s + k.sign * sumBefore(r, first);
+        }, 0);
 
       const byDate = new Map<string, number>();
       for (const e of sorted) {
