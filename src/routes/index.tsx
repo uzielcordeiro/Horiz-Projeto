@@ -153,15 +153,37 @@ function DayItemDeleteRow({
   onSkip,
   onEndFrom,
   onRemoveRecurrence,
+  onEditAmount,
 }: {
   item: DayItem;
   onDeleteEntry: () => void;
   onSkip: () => void;
   onEndFrom: () => void;
   onRemoveRecurrence: () => void;
+  onEditAmount: (value: number) => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState("");
   const isRecurrence = Boolean(item.recurrenceId);
+
+  const startEdit = () => {
+    setOpen(false);
+    setDraft(
+      item.amount.toLocaleString("pt-BR", {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      }),
+    );
+    setEditing(true);
+  };
+
+  const confirmEdit = () => {
+    const value = parseAmount(draft);
+    if (!Number.isFinite(value) || value <= 0) return;
+    onEditAmount(value);
+    setEditing(false);
+  };
 
   return (
     <div className="py-2.5">
