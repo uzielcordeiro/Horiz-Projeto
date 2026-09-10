@@ -386,10 +386,12 @@ function Index() {
     const sorted = [...entries].sort((a, b) => a.date.localeCompare(b.date));
     const openingDate = iso(cursor.y, cursor.m, 1);
     const opening =
-      signedTotal(sorted.filter((e) => e.date < openingDate)) -
-      recurrences
-        .filter((r) => r.kind !== "economias")
-        .reduce((s, r) => s + sumBefore(r, openingDate), 0);
+      signedTotal(sorted.filter((e) => e.date < openingDate)) +
+      recurrences.reduce((s, r) => {
+        const k = KINDS.find((x) => x.key === r.kind);
+        if (!k || k.sign === 0) return s;
+        return s + k.sign * sumBefore(r, openingDate);
+      }, 0);
 
     const byDate = new Map<string, Occurrence[]>();
     for (const r of recurrences) {
