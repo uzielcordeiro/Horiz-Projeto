@@ -1284,6 +1284,10 @@ function Index() {
                         onRemoveRecurrence={() =>
                           it.recurrenceId && removeRecurrence(it.recurrenceId)
                         }
+                        onEditAmount={(value) => {
+                          if (it.recurrenceId) updateRecurrenceAmount(it.recurrenceId, value);
+                          else if (it.entryId) updateEntryAmount(it.entryId, value);
+                        }}
                       />
                     ))}
                   </div>
