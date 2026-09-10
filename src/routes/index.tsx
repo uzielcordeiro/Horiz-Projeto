@@ -226,6 +226,37 @@ function DayItemDeleteRow({
           </button>
         )}
       </div>
+      {editing && (
+        <div className="mt-2 flex items-center gap-2">
+          <input
+            autoFocus
+            inputMode="decimal"
+            maxLength={20}
+            value={draft}
+            onChange={(ev) => setDraft(sanitizeAmountInput(ev.target.value))}
+            onKeyDown={(ev) => {
+              if (ev.key === "Enter") {
+                ev.preventDefault();
+                confirmEdit();
+              }
+            }}
+            placeholder="0,00"
+            className="h-9 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm font-semibold tabular-nums text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
+          />
+          <button
+            type="button"
+            onClick={confirmEdit}
+            className="h-9 shrink-0 rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground transition-all hover:brightness-110"
+          >
+            salvar
+          </button>
+        </div>
+      )}
+      {editing && isRecurrence && (
+        <p className="mt-1.5 text-xs text-muted-foreground">
+          o novo valor vale para todas as parcelas desta recorrência
+        </p>
+      )}
       {open && isRecurrence && (
         <div className="mt-2 flex flex-wrap items-center gap-2">
           <span className="text-xs text-muted-foreground">apagar lançamento:</span>
