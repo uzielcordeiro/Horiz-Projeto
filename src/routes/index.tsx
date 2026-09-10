@@ -728,6 +728,22 @@ function Index() {
     );
   }
 
+  /** edita o valor de um lançamento avulso */
+  function updateEntryAmount(id: string, value: number) {
+    commit(
+      entries.map((e) => (e.id === id ? { ...e, amount: value } : e)),
+      recurrences,
+    );
+  }
+
+  /** edita o valor de uma parcela/recorrência (vale para todas as ocorrências) */
+  function updateRecurrenceAmount(recurrenceId: string, value: number) {
+    commit(
+      entries,
+      recurrences.map((r) => (r.id === recurrenceId ? { ...r, amount: value } : r)),
+    );
+  }
+
   function skipOccurrence(recurrenceId: string, date: string) {
     commit(
       entries,
