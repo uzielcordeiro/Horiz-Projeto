@@ -1104,6 +1104,7 @@ function Index() {
           setSelectedDay(day);
           setFormDate(iso(cursor.y, cursor.m, day));
           setKind("entradas");
+          setEditTarget(null);
           setAdding(true);
         }}
         onToday={goToday}
@@ -1180,6 +1181,7 @@ function Index() {
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
               setKind("entradas");
+              setEditTarget(null);
               setAdding(true);
             }}
           />
@@ -1209,6 +1211,7 @@ function Index() {
               const day = sameMonth ? today.getDate() : 1;
               setFormDate(iso(cursor.y, cursor.m, day));
               setKind("entradas");
+              setEditTarget(null);
               setAdding(true);
             }}
           />
@@ -1320,6 +1323,7 @@ function Index() {
                           .closest("[data-kind]")
                           ?.getAttribute("data-kind") as Kind | null;
                         setKind(clickedKind ?? "entradas");
+                        setEditTarget(null);
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
