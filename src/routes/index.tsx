@@ -1456,7 +1456,9 @@ function Index() {
                           if (it.recurrenceId) updateRecurrenceAmount(it.recurrenceId, value);
                           else if (it.entryId) updateEntryAmount(it.entryId, value);
                         }}
+                        onEditFull={() => startFullEdit(it)}
                       />
+
                     ))}
                   </div>
                 </div>
