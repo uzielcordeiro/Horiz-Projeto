@@ -351,6 +351,8 @@ function Index() {
   // histórico (desfazer) e seleção múltipla
   const [history, setHistory] = useState<{ entries: Entry[]; recurrences: Recurrence[] }[]>([]);
   const [selectMode, setSelectMode] = useState(false);
+  // edição completa de um lançamento já existente (mantém tudo, muda só o que você alterar)
+  const [editTarget, setEditTarget] = useState<{ type: "entry" | "rec"; id: string } | null>(null);
   const [selected, setSelected] = useState<Record<string, DayItem>>({});
   const [confirmAll, setConfirmAll] = useState<"mes" | "ano" | "tudo" | null>(null);
 
