@@ -1732,7 +1732,7 @@ function Index() {
                 type="submit"
                 className="h-12 w-full rounded-2xl bg-positive px-5 text-base font-semibold text-positive-foreground transition-opacity hover:opacity-90"
               >
-                adicionar {KINDS.find((k) => k.key === kind)!.title}
+                {editTarget ? "salvar alterações" : `adicionar ${KINDS.find((k) => k.key === kind)!.title}`}
               </button>
             </form>
           </AddWindow>
