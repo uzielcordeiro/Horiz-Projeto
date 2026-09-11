@@ -209,8 +209,16 @@ function DayItemDeleteRow({
           onClick={() => (editing ? setEditing(false) : startEdit())}
           className="h-8 shrink-0 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
         >
-          {editing ? "cancelar" : "editar"}
+          {editing ? "cancelar" : "valor"}
         </button>
+        <button
+          type="button"
+          onClick={onEditFull}
+          className="h-8 shrink-0 rounded-lg border border-primary/40 bg-primary/10 px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+        >
+          editar
+        </button>
+
         {isRecurrence ? (
           <button
             type="button"
