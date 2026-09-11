@@ -1418,7 +1418,9 @@ function Index() {
               setAdding(false);
               setError(null);
               setShowCal(false);
+              setEditTarget(null);
             }}
+
           >
             {(() => {
               const dayItems = windowDayItems;
