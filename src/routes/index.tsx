@@ -662,9 +662,53 @@ function Index() {
     setDaysOfWeek([]);
     setTags([]);
     setTagInput("");
+    setEditTarget(null);
+  }
+
+  const fmtAmount = (n: number) =>
+    n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  /** abre o formulário já preenchido com tudo que o lançamento tem hoje */
+  function startFullEdit(item: DayItem) {
+    setError(null);
+    setShowCal(false);
+    if (item.recurrenceId) {
+      const r = recurrences.find((x) => x.id === item.recurrenceId);
+      if (!r) return;
+      setKind(r.kind as Kind);
+      setAmount(fmtAmount(r.amount));
+      setLabel(r.label);
+      setDebtName(r.name);
+      setTags(r.tags ?? []);
+      setFormDate(r.startDate);
+      setFreq(r.freq === "monthly" ? "mensal" : r.freq === "weekly" ? "semanal" : "diario");
+      setInfinite(r.installments == null);
+      setInstallments(String(r.installments ?? 12));
+      setDaysOfMonth(r.daysOfMonth ?? []);
+      setDaysOfWeek(r.daysOfWeek ?? []);
+      setEditTarget({ type: "rec", id: r.id });
+      return;
+    }
+    if (item.entryId) {
+      const en = entries.find((x) => x.id === item.entryId);
+      if (!en) return;
+      setKind(en.kind);
+      setAmount(fmtAmount(en.amount));
+      setLabel(en.label);
+      setDebtName(en.label);
+      setTags(en.tags ?? []);
+      setFormDate(en.date);
+      setFreq("unico");
+      setInfinite(false);
+      setInstallments("12");
+      setDaysOfMonth([]);
+      setDaysOfWeek([]);
+      setEditTarget({ type: "entry", id: en.id });
+    }
   }
 
   function scrollTableToStart() {
+
     tableRef.current?.scrollTo({ left: 0, behavior: "smooth" });
   }
 
