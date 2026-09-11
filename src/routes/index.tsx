@@ -154,6 +154,7 @@ function DayItemDeleteRow({
   onEndFrom,
   onRemoveRecurrence,
   onEditAmount,
+  onEditFull,
 }: {
   item: DayItem;
   onDeleteEntry: () => void;
@@ -161,7 +162,9 @@ function DayItemDeleteRow({
   onEndFrom: () => void;
   onRemoveRecurrence: () => void;
   onEditAmount: (value: number) => void;
+  onEditFull: () => void;
 }) {
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
