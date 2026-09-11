@@ -154,6 +154,7 @@ function DayItemDeleteRow({
   onEndFrom,
   onRemoveRecurrence,
   onEditAmount,
+  onEditFull,
 }: {
   item: DayItem;
   onDeleteEntry: () => void;
@@ -161,7 +162,9 @@ function DayItemDeleteRow({
   onEndFrom: () => void;
   onRemoveRecurrence: () => void;
   onEditAmount: (value: number) => void;
+  onEditFull: () => void;
 }) {
+
   const [open, setOpen] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState("");
@@ -206,8 +209,16 @@ function DayItemDeleteRow({
           onClick={() => (editing ? setEditing(false) : startEdit())}
           className="h-8 shrink-0 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
         >
-          {editing ? "cancelar" : "editar"}
+          {editing ? "cancelar" : "valor"}
         </button>
+        <button
+          type="button"
+          onClick={onEditFull}
+          className="h-8 shrink-0 rounded-lg border border-primary/40 bg-primary/10 px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
+        >
+          editar
+        </button>
+
         {isRecurrence ? (
           <button
             type="button"
@@ -340,6 +351,8 @@ function Index() {
   // histórico (desfazer) e seleção múltipla
   const [history, setHistory] = useState<{ entries: Entry[]; recurrences: Recurrence[] }[]>([]);
   const [selectMode, setSelectMode] = useState(false);
+  // edição completa de um lançamento já existente (mantém tudo, muda só o que você alterar)
+  const [editTarget, setEditTarget] = useState<{ type: "entry" | "rec"; id: string } | null>(null);
   const [selected, setSelected] = useState<Record<string, DayItem>>({});
   const [confirmAll, setConfirmAll] = useState<"mes" | "ano" | "tudo" | null>(null);
 
@@ -649,9 +662,53 @@ function Index() {
     setDaysOfWeek([]);
     setTags([]);
     setTagInput("");
+    setEditTarget(null);
+  }
+
+  const fmtAmount = (n: number) =>
+    n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+  /** abre o formulário já preenchido com tudo que o lançamento tem hoje */
+  function startFullEdit(item: DayItem) {
+    setError(null);
+    setShowCal(false);
+    if (item.recurrenceId) {
+      const r = recurrences.find((x) => x.id === item.recurrenceId);
+      if (!r) return;
+      setKind(r.kind as Kind);
+      setAmount(fmtAmount(r.amount));
+      setLabel(r.label);
+      setDebtName(r.name);
+      setTags(r.tags ?? []);
+      setFormDate(r.startDate);
+      setFreq(r.freq === "monthly" ? "mensal" : r.freq === "weekly" ? "semanal" : "diario");
+      setInfinite(r.installments == null);
+      setInstallments(String(r.installments ?? 12));
+      setDaysOfMonth(r.daysOfMonth ?? []);
+      setDaysOfWeek(r.daysOfWeek ?? []);
+      setEditTarget({ type: "rec", id: r.id });
+      return;
+    }
+    if (item.entryId) {
+      const en = entries.find((x) => x.id === item.entryId);
+      if (!en) return;
+      setKind(en.kind);
+      setAmount(fmtAmount(en.amount));
+      setLabel(en.label);
+      setDebtName(en.label);
+      setTags(en.tags ?? []);
+      setFormDate(en.date);
+      setFreq("unico");
+      setInfinite(false);
+      setInstallments("12");
+      setDaysOfMonth([]);
+      setDaysOfWeek([]);
+      setEditTarget({ type: "entry", id: en.id });
+    }
   }
 
   function scrollTableToStart() {
+
     tableRef.current?.scrollTo({ left: 0, behavior: "smooth" });
   }
 
@@ -692,7 +749,118 @@ function Index() {
     const { y, m, d } = formDateParts;
     const cleanTags = tags.slice(0, 8);
 
+    // edição de um lançamento existente: preserva tudo, aplica só o que mudou
+    if (editTarget) {
+      const cleanLabel = label.trim() || (SUGGESTIONS[kind][0] ?? "Outro");
+      const recName =
+        debtName.trim() || label.trim() || KINDS.find((k) => k.key === kind)!.title;
+      const isRec = freq !== "unico";
+      let parcelas: number | null = null;
+      let dom: number[] = [];
+      let dow: number[] = [];
+      if (isRec) {
+        parcelas = infinite ? null : Math.floor(Number(installments));
+        if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
+          setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
+          return;
+        }
+        dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [d]) : [];
+        dow =
+          freq === "semanal"
+            ? daysOfWeek.length
+              ? daysOfWeek
+              : [new Date(y, m, d).getDay()]
+            : [];
+      }
+      const mappedFreq =
+        freq === "mensal" ? "monthly" : freq === "semanal" ? "weekly" : "daily";
+      setError(null);
+
+      if (editTarget.type === "entry") {
+        if (isRec) {
+          commit(entries.filter((en) => en.id !== editTarget.id), [
+            ...recurrences,
+            {
+              id: crypto.randomUUID(),
+              kind,
+              name: recName,
+              label: cleanLabel,
+              tags: cleanTags,
+              amount: value,
+              freq: mappedFreq,
+              daysOfMonth: dom,
+              daysOfWeek: dow,
+              startDate: date,
+              installments: parcelas,
+              endDate: null,
+              skipped: [],
+            },
+          ]);
+        } else {
+          commit(
+            entries.map((en) =>
+              en.id === editTarget.id
+                ? {
+                    ...en,
+                    amount: value,
+                    date,
+                    label: debtName.trim() || cleanLabel,
+                    kind,
+                    tags: cleanTags,
+                  }
+                : en,
+            ),
+            recurrences,
+          );
+        }
+      } else if (isRec) {
+        commit(
+          entries,
+          recurrences.map((r) =>
+            r.id === editTarget.id
+              ? {
+                  ...r,
+                  kind,
+                  name: recName,
+                  label: cleanLabel,
+                  tags: cleanTags,
+                  amount: value,
+                  freq: mappedFreq,
+                  daysOfMonth: dom,
+                  daysOfWeek: dow,
+                  startDate: date,
+                  installments: parcelas,
+                }
+              : r,
+          ),
+        );
+      } else {
+        commit(
+          [
+            ...entries,
+            {
+              id: crypto.randomUUID(),
+              amount: value,
+              date,
+              label: debtName.trim() || cleanLabel,
+              kind,
+              tags: cleanTags,
+            },
+          ],
+          recurrences.filter((r) => r.id !== editTarget.id),
+        );
+      }
+
+      resetForm();
+      setAdding(false);
+      setSelectedDay(null);
+      setCursor({ y, m });
+      scrollTableToStart();
+      return;
+    }
+
     if (freq !== "unico") {
+
       const parcelas = infinite ? null : Math.floor(Number(installments));
       if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
         setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
@@ -936,6 +1104,7 @@ function Index() {
           setSelectedDay(day);
           setFormDate(iso(cursor.y, cursor.m, day));
           setKind("entradas");
+          setEditTarget(null);
           setAdding(true);
         }}
         onToday={goToday}
@@ -1012,6 +1181,7 @@ function Index() {
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
               setKind("entradas");
+              setEditTarget(null);
               setAdding(true);
             }}
           />
@@ -1041,6 +1211,7 @@ function Index() {
               const day = sameMonth ? today.getDate() : 1;
               setFormDate(iso(cursor.y, cursor.m, day));
               setKind("entradas");
+              setEditTarget(null);
               setAdding(true);
             }}
           />
@@ -1152,6 +1323,7 @@ function Index() {
                           .closest("[data-kind]")
                           ?.getAttribute("data-kind") as Kind | null;
                         setKind(clickedKind ?? "entradas");
+                        setEditTarget(null);
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
@@ -1250,7 +1422,9 @@ function Index() {
               setAdding(false);
               setError(null);
               setShowCal(false);
+              setEditTarget(null);
             }}
+
           >
             {(() => {
               const dayItems = windowDayItems;
@@ -1288,7 +1462,9 @@ function Index() {
                           if (it.recurrenceId) updateRecurrenceAmount(it.recurrenceId, value);
                           else if (it.entryId) updateEntryAmount(it.entryId, value);
                         }}
+                        onEditFull={() => startFullEdit(it)}
                       />
+
                     ))}
                   </div>
                 </div>
@@ -1560,7 +1736,7 @@ function Index() {
                 type="submit"
                 className="h-12 w-full rounded-2xl bg-positive px-5 text-base font-semibold text-positive-foreground transition-opacity hover:opacity-90"
               >
-                adicionar {KINDS.find((k) => k.key === kind)!.title}
+                {editTarget ? "salvar alterações" : `adicionar ${KINDS.find((k) => k.key === kind)!.title}`}
               </button>
             </form>
           </AddWindow>
