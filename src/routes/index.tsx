@@ -749,7 +749,118 @@ function Index() {
     const { y, m, d } = formDateParts;
     const cleanTags = tags.slice(0, 8);
 
+    // edição de um lançamento existente: preserva tudo, aplica só o que mudou
+    if (editTarget) {
+      const cleanLabel = label.trim() || (SUGGESTIONS[kind][0] ?? "Outro");
+      const recName =
+        debtName.trim() || label.trim() || KINDS.find((k) => k.key === kind)!.title;
+      const isRec = freq !== "unico";
+      let parcelas: number | null = null;
+      let dom: number[] = [];
+      let dow: number[] = [];
+      if (isRec) {
+        parcelas = infinite ? null : Math.floor(Number(installments));
+        if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
+          setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
+          return;
+        }
+        dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [d]) : [];
+        dow =
+          freq === "semanal"
+            ? daysOfWeek.length
+              ? daysOfWeek
+              : [new Date(y, m, d).getDay()]
+            : [];
+      }
+      const mappedFreq =
+        freq === "mensal" ? "monthly" : freq === "semanal" ? "weekly" : "daily";
+      setError(null);
+
+      if (editTarget.type === "entry") {
+        if (isRec) {
+          commit(entries.filter((en) => en.id !== editTarget.id), [
+            ...recurrences,
+            {
+              id: crypto.randomUUID(),
+              kind,
+              name: recName,
+              label: cleanLabel,
+              tags: cleanTags,
+              amount: value,
+              freq: mappedFreq,
+              daysOfMonth: dom,
+              daysOfWeek: dow,
+              startDate: date,
+              installments: parcelas,
+              endDate: null,
+              skipped: [],
+            },
+          ]);
+        } else {
+          commit(
+            entries.map((en) =>
+              en.id === editTarget.id
+                ? {
+                    ...en,
+                    amount: value,
+                    date,
+                    label: debtName.trim() || cleanLabel,
+                    kind,
+                    tags: cleanTags,
+                  }
+                : en,
+            ),
+            recurrences,
+          );
+        }
+      } else if (isRec) {
+        commit(
+          entries,
+          recurrences.map((r) =>
+            r.id === editTarget.id
+              ? {
+                  ...r,
+                  kind,
+                  name: recName,
+                  label: cleanLabel,
+                  tags: cleanTags,
+                  amount: value,
+                  freq: mappedFreq,
+                  daysOfMonth: dom,
+                  daysOfWeek: dow,
+                  startDate: date,
+                  installments: parcelas,
+                }
+              : r,
+          ),
+        );
+      } else {
+        commit(
+          [
+            ...entries,
+            {
+              id: crypto.randomUUID(),
+              amount: value,
+              date,
+              label: debtName.trim() || cleanLabel,
+              kind,
+              tags: cleanTags,
+            },
+          ],
+          recurrences.filter((r) => r.id !== editTarget.id),
+        );
+      }
+
+      resetForm();
+      setAdding(false);
+      setSelectedDay(null);
+      setCursor({ y, m });
+      scrollTableToStart();
+      return;
+    }
+
     if (freq !== "unico") {
+
       const parcelas = infinite ? null : Math.floor(Number(installments));
       if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
         setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
