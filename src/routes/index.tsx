@@ -48,6 +48,8 @@ type Entry = {
   label: string;
   kind: Kind;
   tags?: string[];
+  /** Economias criadas pelo Horizonte funcionam como transferência do saldo. */
+  horizonTransfer?: boolean;
 };
 
 
@@ -98,6 +100,8 @@ const monthLabel = (y: number, m: number) =>
 
 type Status = "positive" | "warning" | "negative";
 const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b >= 0 ? "warning" : "negative");
+const horizonStatusOf = (b: number): "surplus" | Status =>
+  b > 2000 ? "surplus" : statusOf(b);
 const saldoCell: Record<Status, string> = {
   positive: "bg-positive/15 text-positive",
   warning: "bg-warning/20 text-warning-foreground",
@@ -125,10 +129,14 @@ function parseAmount(input: string) {
 // campo de valor: aceita apenas números, vírgula e ponto
 const sanitizeAmountInput = (v: string) => v.replace(/[^\d.,]/g, "");
 
+const balanceSign = (kind: Kind, horizonTransfer?: boolean): 1 | -1 | 0 => {
+  if (kind === "economias" && horizonTransfer) return -1;
+  return KINDS.find((item) => item.key === kind)?.sign ?? 0;
+};
+
 const signedTotal = (list: Entry[]) =>
   list.reduce((sum, e) => {
-    const k = KINDS.find((x) => x.key === e.kind);
-    return sum + (k ? k.sign * e.amount : 0);
+    return sum + balanceSign(e.kind, e.horizonTransfer) * e.amount;
   }, 0);
 
 const GRID = "grid-cols-[56px_repeat(6,minmax(110px,1fr))]";
@@ -143,6 +151,7 @@ type DayItem = {
   entryId?: string;
   recurrenceId?: string;
   date: string;
+  horizonTransfer?: boolean;
 };
 
 type Freq = "unico" | "diario" | "mensal" | "semanal";
@@ -353,6 +362,7 @@ function Index() {
   const [selectMode, setSelectMode] = useState(false);
   // edição completa de um lançamento já existente (mantém tudo, muda só o que você alterar)
   const [editTarget, setEditTarget] = useState<{ type: "entry" | "rec"; id: string } | null>(null);
+  const [formOrigin, setFormOrigin] = useState<"standard" | "horizon">("standard");
   const [selected, setSelected] = useState<Record<string, DayItem>>({});
   const [confirmAll, setConfirmAll] = useState<"mes" | "ano" | "tudo" | null>(null);
 

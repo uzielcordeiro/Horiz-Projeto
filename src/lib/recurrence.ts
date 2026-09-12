@@ -68,7 +68,7 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
 
         index,
         total,
-        horizonTransfer: rec.horizonTransfer,
+        horizonTransfer: rec.horizonTransfer === true,
       });
     }
     return false;
