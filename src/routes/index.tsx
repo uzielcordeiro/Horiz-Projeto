@@ -471,9 +471,8 @@ function Index() {
     const opening =
       signedTotal(sorted.filter((e) => e.date < openingDate)) +
       recurrences.reduce((s, r) => {
-        const k = KINDS.find((x) => x.key === r.kind);
-        if (!k || k.sign === 0) return s;
-        return s + k.sign * sumBefore(r, openingDate);
+        const sign = balanceSign(r.kind as Kind, r.horizonTransfer);
+        return s + sign * sumBefore(r, openingDate);
       }, 0);
 
     const byDate = new Map<string, Occurrence[]>();
@@ -500,11 +499,12 @@ function Index() {
             key: e.id,
             kind: e.kind,
             title: k.title,
-            sign: k.sign,
+            sign: balanceSign(e.kind, e.horizonTransfer),
             amount: e.amount,
             detail: e.label,
             entryId: e.id,
             date,
+            horizonTransfer: e.horizonTransfer,
           } satisfies DayItem;
         }),
         ...dayOccurrences.map((o) => {
@@ -513,13 +513,14 @@ function Index() {
             key: `${o.recurrenceId}-${o.date}`,
             kind: k.key,
             title: k.title,
-            sign: k.sign,
+            sign: balanceSign(k.key, o.horizonTransfer),
             amount: o.amount,
             detail: `${o.name || o.label}${
               o.total ? ` · ${o.index}/${o.total}` : " · recorrente"
             }`,
             recurrenceId: o.recurrenceId,
             date: o.date,
+            horizonTransfer: o.horizonTransfer,
           } satisfies DayItem;
         }),
 
@@ -588,21 +589,32 @@ function Index() {
         signedTotal(sorted.filter((e) => e.date < first)) +
         recurrences.reduce((s, r) => {
           const k = KINDS.find((x) => x.key === r.kind);
-          if (!k || k.sign === 0) return s;
-          return s + k.sign * sumBefore(r, first);
+          if (!k) return s;
+          return s + balanceSign(r.kind as Kind, r.horizonTransfer) * sumBefore(r, first);
         }, 0);
 
       const byDate = new Map<string, number>();
       for (const e of sorted) {
         if (e.date >= first) {
           const k = KINDS.find((x) => x.key === e.kind);
-          if (k) byDate.set(e.date, (byDate.get(e.date) ?? 0) + k.sign * e.amount);
+          if (k) {
+            byDate.set(
+              e.date,
+              (byDate.get(e.date) ?? 0) + balanceSign(e.kind, e.horizonTransfer) * e.amount,
+            );
+          }
         }
       }
       for (const r of recurrences) {
         for (const o of occurrencesInMonth(r, y, m)) {
           const k = KINDS.find((x) => x.key === o.kind);
-          if (k) byDate.set(o.date, (byDate.get(o.date) ?? 0) + k.sign * o.amount);
+          if (k) {
+            byDate.set(
+              o.date,
+              (byDate.get(o.date) ?? 0) +
+                balanceSign(o.kind as Kind, o.horizonTransfer) * o.amount,
+            );
+          }
         }
       }
 
@@ -610,7 +622,7 @@ function Index() {
         const day = idx + 1;
         const date = iso(y, m, day);
         running += byDate.get(date) ?? 0;
-        return { day, date, balance: running, status: statusOf(running) };
+        return { day, date, balance: running, status: horizonStatusOf(running) };
       });
 
       const label = `${new Date(y, m, 1)
@@ -673,6 +685,7 @@ function Index() {
     setTags([]);
     setTagInput("");
     setEditTarget(null);
+    setFormOrigin("standard");
   }
 
   const fmtAmount = (n: number) =>
