@@ -504,7 +504,7 @@ function Index() {
             detail: e.label,
             entryId: e.id,
             date,
-            horizonTransfer: e.horizonTransfer,
+            horizonTransfer: e.horizonTransfer === true,
           } satisfies DayItem;
         }),
         ...dayOccurrences.map((o) => {
@@ -520,7 +520,7 @@ function Index() {
             }`,
             recurrenceId: o.recurrenceId,
             date: o.date,
-            horizonTransfer: o.horizonTransfer,
+            horizonTransfer: o.horizonTransfer === true,
           } satisfies DayItem;
         }),
 
