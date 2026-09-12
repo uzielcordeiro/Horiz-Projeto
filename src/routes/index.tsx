@@ -48,6 +48,8 @@ type Entry = {
   label: string;
   kind: Kind;
   tags?: string[];
+  /** Economias criadas pelo Horizonte funcionam como transferência do saldo. */
+  horizonTransfer?: boolean;
 };
 
 
@@ -98,6 +100,8 @@ const monthLabel = (y: number, m: number) =>
 
 type Status = "positive" | "warning" | "negative";
 const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b >= 0 ? "warning" : "negative");
+const horizonStatusOf = (b: number): "surplus" | Status =>
+  b > 2000 ? "surplus" : statusOf(b);
 const saldoCell: Record<Status, string> = {
   positive: "bg-positive/15 text-positive",
   warning: "bg-warning/20 text-warning-foreground",
@@ -125,10 +129,14 @@ function parseAmount(input: string) {
 // campo de valor: aceita apenas números, vírgula e ponto
 const sanitizeAmountInput = (v: string) => v.replace(/[^\d.,]/g, "");
 
+const balanceSign = (kind: Kind, horizonTransfer?: boolean): 1 | -1 | 0 => {
+  if (kind === "economias" && horizonTransfer) return -1;
+  return KINDS.find((item) => item.key === kind)?.sign ?? 0;
+};
+
 const signedTotal = (list: Entry[]) =>
   list.reduce((sum, e) => {
-    const k = KINDS.find((x) => x.key === e.kind);
-    return sum + (k ? k.sign * e.amount : 0);
+    return sum + balanceSign(e.kind, e.horizonTransfer) * e.amount;
   }, 0);
 
 const GRID = "grid-cols-[56px_repeat(6,minmax(110px,1fr))]";
@@ -143,6 +151,7 @@ type DayItem = {
   entryId?: string;
   recurrenceId?: string;
   date: string;
+  horizonTransfer?: boolean;
 };
 
 type Freq = "unico" | "diario" | "mensal" | "semanal";
@@ -353,6 +362,7 @@ function Index() {
   const [selectMode, setSelectMode] = useState(false);
   // edição completa de um lançamento já existente (mantém tudo, muda só o que você alterar)
   const [editTarget, setEditTarget] = useState<{ type: "entry" | "rec"; id: string } | null>(null);
+  const [formOrigin, setFormOrigin] = useState<"standard" | "horizon">("standard");
   const [selected, setSelected] = useState<Record<string, DayItem>>({});
   const [confirmAll, setConfirmAll] = useState<"mes" | "ano" | "tudo" | null>(null);
 
@@ -461,9 +471,8 @@ function Index() {
     const opening =
       signedTotal(sorted.filter((e) => e.date < openingDate)) +
       recurrences.reduce((s, r) => {
-        const k = KINDS.find((x) => x.key === r.kind);
-        if (!k || k.sign === 0) return s;
-        return s + k.sign * sumBefore(r, openingDate);
+        const sign = balanceSign(r.kind as Kind, r.horizonTransfer);
+        return s + sign * sumBefore(r, openingDate);
       }, 0);
 
     const byDate = new Map<string, Occurrence[]>();
@@ -490,11 +499,12 @@ function Index() {
             key: e.id,
             kind: e.kind,
             title: k.title,
-            sign: k.sign,
+            sign: balanceSign(e.kind, e.horizonTransfer),
             amount: e.amount,
             detail: e.label,
             entryId: e.id,
             date,
+            horizonTransfer: e.horizonTransfer === true,
           } satisfies DayItem;
         }),
         ...dayOccurrences.map((o) => {
@@ -503,13 +513,14 @@ function Index() {
             key: `${o.recurrenceId}-${o.date}`,
             kind: k.key,
             title: k.title,
-            sign: k.sign,
+            sign: balanceSign(k.key, o.horizonTransfer),
             amount: o.amount,
             detail: `${o.name || o.label}${
               o.total ? ` · ${o.index}/${o.total}` : " · recorrente"
             }`,
             recurrenceId: o.recurrenceId,
             date: o.date,
+            horizonTransfer: o.horizonTransfer === true,
           } satisfies DayItem;
         }),
 
@@ -578,21 +589,32 @@ function Index() {
         signedTotal(sorted.filter((e) => e.date < first)) +
         recurrences.reduce((s, r) => {
           const k = KINDS.find((x) => x.key === r.kind);
-          if (!k || k.sign === 0) return s;
-          return s + k.sign * sumBefore(r, first);
+          if (!k) return s;
+          return s + balanceSign(r.kind as Kind, r.horizonTransfer) * sumBefore(r, first);
         }, 0);
 
       const byDate = new Map<string, number>();
       for (const e of sorted) {
         if (e.date >= first) {
           const k = KINDS.find((x) => x.key === e.kind);
-          if (k) byDate.set(e.date, (byDate.get(e.date) ?? 0) + k.sign * e.amount);
+          if (k) {
+            byDate.set(
+              e.date,
+              (byDate.get(e.date) ?? 0) + balanceSign(e.kind, e.horizonTransfer) * e.amount,
+            );
+          }
         }
       }
       for (const r of recurrences) {
         for (const o of occurrencesInMonth(r, y, m)) {
           const k = KINDS.find((x) => x.key === o.kind);
-          if (k) byDate.set(o.date, (byDate.get(o.date) ?? 0) + k.sign * o.amount);
+          if (k) {
+            byDate.set(
+              o.date,
+              (byDate.get(o.date) ?? 0) +
+                balanceSign(o.kind as Kind, o.horizonTransfer) * o.amount,
+            );
+          }
         }
       }
 
@@ -600,7 +622,7 @@ function Index() {
         const day = idx + 1;
         const date = iso(y, m, day);
         running += byDate.get(date) ?? 0;
-        return { day, date, balance: running, status: statusOf(running) };
+        return { day, date, balance: running, status: horizonStatusOf(running) };
       });
 
       const label = `${new Date(y, m, 1)
@@ -663,6 +685,7 @@ function Index() {
     setTags([]);
     setTagInput("");
     setEditTarget(null);
+    setFormOrigin("standard");
   }
 
   const fmtAmount = (n: number) =>
