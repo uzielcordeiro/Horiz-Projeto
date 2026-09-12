@@ -1,4 +1,4 @@
-type Status = "positive" | "warning" | "negative";
+type Status = "surplus" | "positive" | "warning" | "negative";
 
 export type HorizonDay = {
   day: number;
@@ -15,6 +15,7 @@ export type HorizonMonth = {
 };
 
 const cell: Record<Status, string> = {
+  surplus: "bg-surplus text-surplus-foreground",
   positive: "bg-positive/20 text-positive",
   warning: "bg-warning/25 text-warning-foreground",
   negative: "bg-negative/20 text-negative",
@@ -118,8 +119,7 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso }: 
       </div>
 
       <p className="mt-2 text-xs text-muted-foreground">
-        verde: saldo ≥ R$ 1.000 · amarelo: entre R$ 0 e R$ 1.000 · vermelho: negativo. clique em um
-        dia para lançar nele.
+        verde-escuro: acima de R$ 2.000 · verde-claro: de R$ 1.000 até R$ 2.000 · amarelo: entre R$ 0 e R$ 1.000 · vermelho: negativo. clique em um dia para lançar nele.
       </p>
     </section>
   );

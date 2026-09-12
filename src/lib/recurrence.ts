@@ -14,6 +14,8 @@ export type Recurrence = {
   installments: number | null;
   endDate?: string | null;
   skipped: string[];
+  /** Economias criadas pelo Horizonte funcionam como transferência do saldo. */
+  horizonTransfer?: boolean;
 };
 
 export type Occurrence = {
@@ -26,6 +28,7 @@ export type Occurrence = {
   tags: string[];
   index: number;
   total: number | null;
+  horizonTransfer?: boolean;
 };
 
 
@@ -65,6 +68,7 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
 
         index,
         total,
+        horizonTransfer: rec.horizonTransfer,
       });
     }
     return false;

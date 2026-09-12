@@ -61,6 +61,8 @@
   --color-sidebar-ring: var(--sidebar-ring);
   --color-positive: var(--positive);
   --color-positive-foreground: var(--positive-foreground);
+  --color-surplus: var(--surplus);
+  --color-surplus-foreground: var(--surplus-foreground);
   --color-warning: var(--warning);
   --color-warning-foreground: var(--warning-foreground);
   --color-negative: var(--negative);
@@ -172,6 +174,8 @@
 
   --positive: oklch(0.62 0.15 152);
   --positive-foreground: oklch(0.99 0.01 150);
+  --surplus: oklch(0.39 0.12 155);
+  --surplus-foreground: oklch(0.99 0.01 150);
   --warning: oklch(0.79 0.15 85);
   --warning-foreground: oklch(0.28 0.06 85);
   --negative: oklch(0.6 0.2 25);
