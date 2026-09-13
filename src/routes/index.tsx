@@ -587,7 +587,12 @@ function Index() {
 
       // saldo de abertura do mês
       let running =
-        signedTotal(sorted.filter((e) => e.date < first)) +
+        sorted
+          .filter((e) => e.date < first)
+          .reduce(
+            (sum, e) => sum + balanceSign(e.kind, e.horizonTransfer) * e.amount,
+            0,
+          ) +
         recurrences.reduce((s, r) => {
           const k = KINDS.find((x) => x.key === r.kind);
           if (!k) return s;
