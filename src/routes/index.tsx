@@ -136,7 +136,8 @@ const balanceSign = (kind: Kind, horizonTransfer?: boolean): 1 | -1 | 0 => {
 
 const signedTotal = (list: Entry[]) =>
   list.reduce((sum, e) => {
-    return sum + balanceSign(e.kind, e.horizonTransfer) * e.amount;
+    const sign = KINDS.find((item) => item.key === e.kind)?.sign ?? 0;
+    return sum + sign * e.amount;
   }, 0);
 
 const GRID = "grid-cols-[56px_repeat(6,minmax(110px,1fr))]";
@@ -471,7 +472,7 @@ function Index() {
     const opening =
       signedTotal(sorted.filter((e) => e.date < openingDate)) +
       recurrences.reduce((s, r) => {
-        const sign = balanceSign(r.kind as Kind, r.horizonTransfer);
+        const sign = KINDS.find((item) => item.key === r.kind)?.sign ?? 0;
         return s + sign * sumBefore(r, openingDate);
       }, 0);
 
@@ -499,7 +500,7 @@ function Index() {
             key: e.id,
             kind: e.kind,
             title: k.title,
-            sign: balanceSign(e.kind, e.horizonTransfer),
+            sign: k.sign,
             amount: e.amount,
             detail: e.label,
             entryId: e.id,
@@ -513,7 +514,7 @@ function Index() {
             key: `${o.recurrenceId}-${o.date}`,
             kind: k.key,
             title: k.title,
-            sign: balanceSign(k.key, o.horizonTransfer),
+            sign: k.sign,
             amount: o.amount,
             detail: `${o.name || o.label}${
               o.total ? ` · ${o.index}/${o.total}` : " · recorrente"
@@ -695,6 +696,7 @@ function Index() {
   function startFullEdit(item: DayItem) {
     setError(null);
     setShowCal(false);
+    setFormOrigin(item.horizonTransfer ? "horizon" : "standard");
     if (item.recurrenceId) {
       const r = recurrences.find((x) => x.id === item.recurrenceId);
       if (!r) return;
@@ -771,6 +773,7 @@ function Index() {
     }
     const { y, m, d } = formDateParts;
     const cleanTags = tags.slice(0, 8);
+    const horizonTransfer = formOrigin === "horizon" && kind === "economias";
 
     // edição de um lançamento existente: preserva tudo, aplica só o que mudou
     if (editTarget) {
@@ -817,6 +820,7 @@ function Index() {
               installments: parcelas,
               endDate: null,
               skipped: [],
+              horizonTransfer,
             },
           ]);
         } else {
@@ -830,6 +834,7 @@ function Index() {
                     label: debtName.trim() || cleanLabel,
                     kind,
                     tags: cleanTags,
+                    horizonTransfer,
                   }
                 : en,
             ),
@@ -853,6 +858,7 @@ function Index() {
                   daysOfWeek: dow,
                   startDate: date,
                   installments: parcelas,
+                  horizonTransfer,
                 }
               : r,
           ),
@@ -868,6 +874,7 @@ function Index() {
               label: debtName.trim() || cleanLabel,
               kind,
               tags: cleanTags,
+              horizonTransfer,
             },
           ],
           recurrences.filter((r) => r.id !== editTarget.id),
@@ -913,6 +920,7 @@ function Index() {
           installments: parcelas,
           endDate: null,
           skipped: [],
+          horizonTransfer,
         },
       ]);
       resetForm();
@@ -935,6 +943,7 @@ function Index() {
             debtName.trim() || label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
           kind,
           tags: cleanTags,
+          horizonTransfer,
         },
       ],
       recurrences,
@@ -1128,6 +1137,7 @@ function Index() {
           setFormDate(iso(cursor.y, cursor.m, day));
           setKind("entradas");
           setEditTarget(null);
+          setFormOrigin("standard");
           setAdding(true);
         }}
         onToday={goToday}
@@ -1205,6 +1215,7 @@ function Index() {
               setFormDate(iso(y, m, day));
               setKind("entradas");
               setEditTarget(null);
+              setFormOrigin("horizon");
               setAdding(true);
             }}
           />
@@ -1235,6 +1246,7 @@ function Index() {
               setFormDate(iso(cursor.y, cursor.m, day));
               setKind("entradas");
               setEditTarget(null);
+              setFormOrigin("standard");
               setAdding(true);
             }}
           />
@@ -1347,6 +1359,7 @@ function Index() {
                           ?.getAttribute("data-kind") as Kind | null;
                         setKind(clickedKind ?? "entradas");
                         setEditTarget(null);
+                        setFormOrigin("standard");
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
