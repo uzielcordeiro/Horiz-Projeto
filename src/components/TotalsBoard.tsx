@@ -4,6 +4,7 @@ export type TotalsData = {
   totals: Record<Kind, number>;
   diaryDays: number;
   remainingDays: number;
+  savedTotal: number;
 };
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -61,7 +62,7 @@ function Card({
 }
 
 export function TotalsBoard({ data }: { data: TotalsData }) {
-  const { totals, diaryDays, remainingDays } = data;
+  const { totals, diaryDays, remainingDays, savedTotal } = data;
 
   const custoVida = totals.saidas + totals.diarios + totals.cartao;
   // economias é independente: não entra na performance
@@ -103,7 +104,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
               </>
             }
             value={`${economizado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}
-            hint={economizado > 0 ? "guardado das entradas" : "nada guardado"}
+            hint={`total poupado: ${brl(savedTotal)}`}
           />
           <Card
             title="custo de vida"
