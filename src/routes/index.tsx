@@ -551,8 +551,16 @@ function Index() {
     const diaryDays = rows.list.filter((r) => r.totals.diarios > 0).length;
     const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
     const remainingDays = sameMonth ? daysInMonth - today.getDate() + 1 : daysInMonth;
-    return { totals: monthTotals, diaryDays, remainingDays };
-  }, [rows, monthTotals, cursor, daysInMonth]);
+    const nextMonth = iso(cursor.y, cursor.m + 1, 1);
+    const savedTotal =
+      entries
+        .filter((entry) => entry.kind === "economias" && entry.date < nextMonth)
+        .reduce((sum, entry) => sum + entry.amount, 0) +
+      recurrences
+        .filter((recurrence) => recurrence.kind === "economias")
+        .reduce((sum, recurrence) => sum + sumBefore(recurrence, nextMonth), 0);
+    return { totals: monthTotals, diaryDays, remainingDays, savedTotal };
+  }, [rows, monthTotals, cursor, daysInMonth, entries, recurrences]);
 
   /** tags do mês com total somado */
   const tagRows = useMemo<TagRow[]>(() => {
