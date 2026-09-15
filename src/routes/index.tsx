@@ -335,6 +335,7 @@ function Index() {
   const [forecastDivisor, setForecastDivisor] = useState(30);
 
   const [kind, setKind] = useState<Kind>("entradas");
+  const [windowKind, setWindowKind] = useState<Kind>("entradas");
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -1149,6 +1150,7 @@ function Index() {
           setSelectedDay(day);
           setFormDate(iso(cursor.y, cursor.m, day));
           setKind("entradas");
+          setWindowKind("entradas");
           setEditTarget(null);
           setFormOrigin("standard");
           setAdding(true);
@@ -1227,6 +1229,7 @@ function Index() {
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
               setKind("entradas");
+              setWindowKind("entradas");
               setEditTarget(null);
               setFormOrigin("horizon");
               setAdding(true);
@@ -1258,6 +1261,7 @@ function Index() {
               const day = sameMonth ? today.getDate() : 1;
               setFormDate(iso(cursor.y, cursor.m, day));
               setKind("entradas");
+              setWindowKind("entradas");
               setEditTarget(null);
               setFormOrigin("standard");
               setAdding(true);
@@ -1370,7 +1374,9 @@ function Index() {
                         const clickedKind = (ev.target as HTMLElement)
                           .closest("[data-kind]")
                           ?.getAttribute("data-kind") as Kind | null;
-                        setKind(clickedKind ?? "entradas");
+                        const openingKind = clickedKind ?? "entradas";
+                        setKind(openingKind);
+                        setWindowKind(openingKind);
                         setEditTarget(null);
                         setFormOrigin("standard");
                         setAdding(true);
@@ -1451,7 +1457,7 @@ function Index() {
               ? rows.list[formDateParts.d - 1] ?? null
               : null;
           const windowDayItems = (windowDayRow?.items ?? []).filter(
-            (it) => it.recurrenceId !== FORECAST_ID,
+            (it) => it.recurrenceId !== FORECAST_ID && it.kind === windowKind,
           );
           const monthPrefix = iso(formDateParts.y, formDateParts.m, 1).slice(0, 7);
           const monthHasItems =
