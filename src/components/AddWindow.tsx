@@ -4,6 +4,13 @@ type Props = {
   title?: string;
   subtitle?: string;
   onClose: () => void;
+  deleteActions?: {
+    key: string;
+    label: string;
+    tone?: "negative" | "warning";
+    disabled?: boolean;
+    onSelect: () => void;
+  }[];
   onDeleteDay?: () => void;
   onDeleteMonth?: () => void;
   deleteDayDisabled?: boolean;
@@ -15,6 +22,7 @@ export function AddWindow({
   title = "adicionar",
   subtitle,
   onClose,
+  deleteActions,
   onDeleteDay,
   onDeleteMonth,
   deleteDayDisabled = false,
@@ -22,7 +30,7 @@ export function AddWindow({
   children,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
-  const [confirming, setConfirming] = useState<"day" | "month" | null>(null);
+  const [confirming, setConfirming] = useState<string | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -39,8 +47,30 @@ export function AddWindow({
     return () => clearTimeout(t);
   }, [confirming]);
 
-  const hasDelete = Boolean(onDeleteDay || onDeleteMonth);
-  const bothDisabled = deleteDayDisabled && deleteMonthDisabled;
+  const actions =
+    deleteActions ??
+    [
+      onDeleteDay
+        ? {
+            key: "day",
+            label: "apagar este dia",
+            tone: "negative" as const,
+            disabled: deleteDayDisabled,
+            onSelect: onDeleteDay,
+          }
+        : null,
+      onDeleteMonth
+        ? {
+            key: "month",
+            label: "apagar este mês",
+            tone: "warning" as const,
+            disabled: deleteMonthDisabled,
+            onSelect: onDeleteMonth,
+          }
+        : null,
+    ].filter((action): action is NonNullable<typeof action> => action !== null);
+  const hasDelete = actions.length > 0;
+  const allDisabled = actions.every((action) => action.disabled);
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center p-4">
@@ -69,17 +99,17 @@ export function AddWindow({
               <button
                 ref={triggerRef}
                 type="button"
-                disabled={bothDisabled}
+                disabled={allDisabled}
                 aria-label={menuOpen ? "fechar opções de apagar" : "apagar"}
                 aria-expanded={menuOpen}
-                title={bothDisabled ? "nada para apagar" : "apagar"}
+                title={allDisabled ? "nada para apagar" : "apagar"}
                 onClick={() => {
-                  if (bothDisabled) return;
+                  if (allDisabled) return;
                   setMenuOpen((v) => !v);
                   setConfirming(null);
                 }}
                 className={`flex h-9 shrink-0 items-center justify-center rounded-full px-3.5 text-xs font-bold uppercase tracking-wide transition-all ${
-                  bothDisabled
+                  allDisabled
                     ? "cursor-not-allowed bg-muted text-muted-foreground/50"
                     : menuOpen || confirming
                       ? "bg-negative text-negative-foreground shadow-lg"
@@ -94,38 +124,24 @@ export function AddWindow({
                   className="absolute right-0 top-full z-50 mt-2 min-w-[11rem] overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-xl"
                   role="menu"
                 >
-                  <DeleteOption
-                    label={confirming === "day" ? "confirmar" : "apagar este dia"}
-                    disabled={deleteDayDisabled}
-                    confirming={confirming === "day"}
-                    tone="negative"
-                    onSelect={() => {
-                      if (!onDeleteDay) return;
-                      if (confirming === "day") {
-                        setConfirming(null);
-                        setMenuOpen(false);
-                        onDeleteDay();
-                        return;
-                      }
-                      setConfirming("day");
-                    }}
-                  />
-                  <DeleteOption
-                    label={confirming === "month" ? "confirmar" : "apagar este mês"}
-                    disabled={deleteMonthDisabled}
-                    confirming={confirming === "month"}
-                    tone="warning"
-                    onSelect={() => {
-                      if (!onDeleteMonth) return;
-                      if (confirming === "month") {
-                        setConfirming(null);
-                        setMenuOpen(false);
-                        onDeleteMonth();
-                        return;
-                      }
-                      setConfirming("month");
-                    }}
-                  />
+                  {actions.map((action) => (
+                    <DeleteOption
+                      key={action.key}
+                      label={confirming === action.key ? "confirmar" : action.label}
+                      disabled={action.disabled === true}
+                      confirming={confirming === action.key}
+                      tone={action.tone ?? "negative"}
+                      onSelect={() => {
+                        if (confirming === action.key) {
+                          setConfirming(null);
+                          setMenuOpen(false);
+                          action.onSelect();
+                          return;
+                        }
+                        setConfirming(action.key);
+                      }}
+                    />
+                  ))}
                 </div>
               )}
             </div>
