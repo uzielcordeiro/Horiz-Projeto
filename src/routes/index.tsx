@@ -3,14 +3,12 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
-import { MonthCalendar } from "@/components/MonthCalendar";
 import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
 import { TotalsBoard } from "@/components/TotalsBoard";
 import { TagsBoard, type TagRow } from "@/components/TagsBoard";
 import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
 import {
-  WEEKDAYS,
   occurrencesInMonth,
   sumBefore,
   type Occurrence,
@@ -157,166 +155,6 @@ type DayItem = {
 
 type Freq = "unico" | "diario" | "mensal" | "semanal";
 
-function DayItemDeleteRow({
-  item,
-  onDeleteEntry,
-  onSkip,
-  onEndFrom,
-  onRemoveRecurrence,
-  onEditAmount,
-  onEditFull,
-}: {
-  item: DayItem;
-  onDeleteEntry: () => void;
-  onSkip: () => void;
-  onEndFrom: () => void;
-  onRemoveRecurrence: () => void;
-  onEditAmount: (value: number) => void;
-  onEditFull: () => void;
-}) {
-
-  const [open, setOpen] = useState(false);
-  const [editing, setEditing] = useState(false);
-  const [draft, setDraft] = useState("");
-  const isRecurrence = Boolean(item.recurrenceId);
-
-  const startEdit = () => {
-    setOpen(false);
-    setDraft(
-      item.amount.toLocaleString("pt-BR", {
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }),
-    );
-    setEditing(true);
-  };
-
-  const confirmEdit = () => {
-    const value = parseAmount(draft);
-    if (!Number.isFinite(value) || value <= 0) return;
-    onEditAmount(value);
-    setEditing(false);
-  };
-
-  return (
-    <div className="py-2.5">
-      <div className="flex items-center gap-3">
-        <span className="min-w-0 flex-1">
-          <span className="block truncate text-sm font-medium text-foreground">
-            {item.detail}
-          </span>
-          <span className="block truncate text-xs text-muted-foreground">
-            {item.title}
-          </span>
-        </span>
-        <span
-          className={`shrink-0 text-sm font-semibold tabular-nums ${kindTone[item.kind]}`}
-        >
-          {brl(item.amount)}
-        </span>
-        <button
-          type="button"
-          onClick={() => (editing ? setEditing(false) : startEdit())}
-          className="h-8 shrink-0 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-foreground transition-colors hover:bg-accent"
-        >
-          {editing ? "cancelar" : "valor"}
-        </button>
-        <button
-          type="button"
-          onClick={onEditFull}
-          className="h-8 shrink-0 rounded-lg border border-primary/40 bg-primary/10 px-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20"
-        >
-          editar
-        </button>
-
-        {isRecurrence ? (
-          <button
-            type="button"
-            onClick={() => setOpen((v) => !v)}
-            className="h-8 shrink-0 rounded-lg border border-negative/40 bg-negative/10 px-2.5 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
-          >
-            {open ? "cancelar" : "apagar"}
-          </button>
-        ) : (
-          <button
-            type="button"
-            onClick={onDeleteEntry}
-            className="h-8 shrink-0 rounded-lg border border-input bg-background px-2.5 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            apagar
-          </button>
-        )}
-      </div>
-      {editing && (
-        <div className="mt-2 flex items-center gap-2">
-          <input
-            autoFocus
-            inputMode="decimal"
-            maxLength={20}
-            value={draft}
-            onChange={(ev) => setDraft(sanitizeAmountInput(ev.target.value))}
-            onKeyDown={(ev) => {
-              if (ev.key === "Enter") {
-                ev.preventDefault();
-                confirmEdit();
-              }
-            }}
-            placeholder="0,00"
-            className="h-9 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm font-semibold tabular-nums text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-          />
-          <button
-            type="button"
-            onClick={confirmEdit}
-            className="h-9 shrink-0 rounded-xl bg-primary px-3 text-xs font-bold text-primary-foreground transition-all hover:brightness-110"
-          >
-            salvar
-          </button>
-        </div>
-      )}
-      {editing && isRecurrence && (
-        <p className="mt-1.5 text-xs text-muted-foreground">
-          o novo valor vale para todas as parcelas desta recorrência
-        </p>
-      )}
-      {open && isRecurrence && (
-        <div className="mt-2 flex flex-wrap items-center gap-2">
-          <span className="text-xs text-muted-foreground">apagar lançamento:</span>
-          <button
-            type="button"
-            onClick={() => {
-              onSkip();
-              setOpen(false);
-            }}
-            className="h-7 rounded-lg border border-input bg-background px-2 text-xs font-medium text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            só esta
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onEndFrom();
-              setOpen(false);
-            }}
-            className="h-7 rounded-lg border border-negative/40 bg-negative/10 px-2 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
-          >
-            desta data em diante
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onRemoveRecurrence();
-              setOpen(false);
-            }}
-            className="h-7 rounded-lg border border-negative/40 bg-negative/10 px-2 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
-          >
-            dívida inteira
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 function Index() {
   const today = new Date();
   const tableRef = useRef<HTMLElement>(null);
@@ -327,6 +165,8 @@ function Index() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
+  const [windowMode, setWindowMode] = useState<"add" | "list" | "detail" | "edit">("add");
+  const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
   const [view, setView] = useState<"saldos" | "horizonte" | "totais" | "tags" | "menu" | "diario">("saldos");
   const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
@@ -716,8 +556,8 @@ function Index() {
       if (!r) return;
       setKind(r.kind as Kind);
       setAmount(fmtAmount(r.amount));
-      setLabel(r.label);
-      setDebtName(r.name);
+      setLabel(r.name || r.label);
+      setDebtName(r.name || r.label);
       setTags(r.tags ?? []);
       setFormDate(r.startDate);
       setFreq(r.freq === "monthly" ? "mensal" : r.freq === "weekly" ? "semanal" : "diario");
@@ -726,6 +566,7 @@ function Index() {
       setDaysOfMonth(r.daysOfMonth ?? []);
       setDaysOfWeek(r.daysOfWeek ?? []);
       setEditTarget({ type: "rec", id: r.id });
+      setWindowMode("edit");
       return;
     }
     if (item.entryId) {
@@ -743,6 +584,7 @@ function Index() {
       setDaysOfMonth([]);
       setDaysOfWeek([]);
       setEditTarget({ type: "entry", id: en.id });
+      setWindowMode("edit");
     }
   }
 
