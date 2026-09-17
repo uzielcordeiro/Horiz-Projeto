@@ -3,12 +3,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
+import { MonthCalendar } from "@/components/MonthCalendar";
 import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
 import { TotalsBoard } from "@/components/TotalsBoard";
 import { TagsBoard, type TagRow } from "@/components/TagsBoard";
 import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
 import {
+  WEEKDAYS,
   occurrencesInMonth,
   sumBefore,
   type Occurrence,
@@ -566,6 +568,7 @@ function Index() {
       setDaysOfMonth(r.daysOfMonth ?? []);
       setDaysOfWeek(r.daysOfWeek ?? []);
       setEditTarget({ type: "rec", id: r.id });
+      setActiveItemKey(item.key);
       setWindowMode("edit");
       return;
     }
@@ -584,6 +587,7 @@ function Index() {
       setDaysOfMonth([]);
       setDaysOfWeek([]);
       setEditTarget({ type: "entry", id: en.id });
+      setActiveItemKey(item.key);
       setWindowMode("edit");
     }
   }
@@ -634,8 +638,6 @@ function Index() {
     // edição de um lançamento existente: preserva tudo, aplica só o que mudou
     if (editTarget) {
       const cleanLabel = label.trim() || (SUGGESTIONS[kind][0] ?? "Outro");
-      const recName =
-        debtName.trim() || label.trim() || KINDS.find((k) => k.key === kind)!.title;
       const isRec = freq !== "unico";
       let parcelas: number | null = null;
       let dom: number[] = [];
@@ -646,7 +648,7 @@ function Index() {
           setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
           return;
         }
-        dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [d]) : [];
+        dom = freq === "mensal" ? [d] : [];
         dow =
           freq === "semanal"
             ? daysOfWeek.length
@@ -659,15 +661,17 @@ function Index() {
       setError(null);
 
       if (editTarget.type === "entry") {
+        const original = entries.find((entry) => entry.id === editTarget.id);
+        if (!original) return;
         if (isRec) {
           commit(entries.filter((en) => en.id !== editTarget.id), [
             ...recurrences,
             {
               id: crypto.randomUUID(),
-              kind,
-              name: recName,
+              kind: original.kind,
+              name: cleanLabel,
               label: cleanLabel,
-              tags: cleanTags,
+              tags: original.tags ?? [],
               amount: value,
               freq: mappedFreq,
               daysOfMonth: dom,
@@ -676,7 +680,7 @@ function Index() {
               installments: parcelas,
               endDate: null,
               skipped: [],
-              horizonTransfer,
+              horizonTransfer: original.horizonTransfer === true,
             },
           ]);
         } else {
@@ -686,11 +690,7 @@ function Index() {
                 ? {
                     ...en,
                     amount: value,
-                    date,
-                    label: debtName.trim() || cleanLabel,
-                    kind,
-                    tags: cleanTags,
-                    horizonTransfer,
+                    label: cleanLabel,
                   }
                 : en,
             ),
@@ -698,39 +698,39 @@ function Index() {
           );
         }
       } else if (isRec) {
+        const original = recurrences.find((recurrence) => recurrence.id === editTarget.id);
+        if (!original) return;
         commit(
           entries,
           recurrences.map((r) =>
             r.id === editTarget.id
               ? {
                   ...r,
-                  kind,
-                  name: recName,
+                  name: cleanLabel,
                   label: cleanLabel,
-                  tags: cleanTags,
                   amount: value,
                   freq: mappedFreq,
                   daysOfMonth: dom,
                   daysOfWeek: dow,
-                  startDate: date,
                   installments: parcelas,
-                  horizonTransfer,
                 }
               : r,
           ),
         );
       } else {
+        const original = recurrences.find((recurrence) => recurrence.id === editTarget.id);
+        if (!original) return;
         commit(
           [
             ...entries,
             {
               id: crypto.randomUUID(),
               amount: value,
-              date,
-              label: debtName.trim() || cleanLabel,
-              kind,
-              tags: cleanTags,
-              horizonTransfer,
+              date: original.startDate,
+              label: cleanLabel,
+              kind: original.kind as Kind,
+              tags: original.tags ?? [],
+              horizonTransfer: original.horizonTransfer === true,
             },
           ],
           recurrences.filter((r) => r.id !== editTarget.id),
@@ -752,7 +752,7 @@ function Index() {
         setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
         return;
       }
-      const dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [d]) : [];
+      const dom = freq === "mensal" ? [d] : [];
       const dow =
         freq === "semanal"
           ? daysOfWeek.length
@@ -985,6 +985,7 @@ function Index() {
     <div className="flex min-h-screen bg-background">
       <AppSidebar
         onAdd={() => {
+          resetForm();
           setError(null);
           setShowCal(false);
           const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
@@ -995,6 +996,8 @@ function Index() {
           setWindowKind("entradas");
           setEditTarget(null);
           setFormOrigin("standard");
+          setActiveItemKey(null);
+          setWindowMode("add");
           setAdding(true);
         }}
         onToday={goToday}
@@ -1065,15 +1068,18 @@ function Index() {
               })
             }
             onPick={(y, m, day) => {
+              resetForm();
               setError(null);
               setShowCal(false);
               setCursor({ y, m });
               setSelectedDay(day);
               setFormDate(iso(y, m, day));
-              setKind("entradas");
-              setWindowKind("entradas");
+              setKind("economias");
+              setWindowKind("economias");
               setEditTarget(null);
               setFormOrigin("horizon");
+              setActiveItemKey(null);
+              setWindowMode("add");
               setAdding(true);
             }}
           />
@@ -1097,6 +1103,7 @@ function Index() {
           <TagsBoard
             rows={tagRows}
             onAdd={() => {
+              resetForm();
               setError(null);
               setShowCal(false);
               const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
@@ -1106,6 +1113,8 @@ function Index() {
               setWindowKind("entradas");
               setEditTarget(null);
               setFormOrigin("standard");
+              setActiveItemKey(null);
+              setWindowMode("add");
               setAdding(true);
             }}
           />
@@ -1209,6 +1218,7 @@ function Index() {
                   <div key={row.date} data-day-row={row.date}>
                     <button
                       onClick={(ev) => {
+                        resetForm();
                         setError(null);
                         setShowCal(false);
                         setSelectedDay(row.day);
@@ -1221,6 +1231,8 @@ function Index() {
                         setWindowKind(openingKind);
                         setEditTarget(null);
                         setFormOrigin("standard");
+                        setActiveItemKey(null);
+                        setWindowMode(row.totals[openingKind] > 0 ? "list" : "add");
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
@@ -1305,68 +1317,121 @@ function Index() {
           const monthHasItems =
             entries.some((e) => e.date.startsWith(monthPrefix)) ||
             recurrences.some((r) => occurrencesInMonth(r, formDateParts.y, formDateParts.m).length > 0);
+          const activeItem = windowDayItems.find((item) => item.key === activeItemKey) ?? null;
+          const closeWindow = () => {
+            setAdding(false);
+            setError(null);
+            setShowCal(false);
+            setEditTarget(null);
+            setActiveItemKey(null);
+          };
+          const detailDeleteActions = activeItem
+            ? activeItem.recurrenceId
+              ? [
+                  {
+                    key: "occurrence",
+                    label: "apagar só este lançamento",
+                    onSelect: () => {
+                      skipOccurrence(activeItem.recurrenceId ?? "", activeItem.date);
+                      closeWindow();
+                    },
+                  },
+                  {
+                    key: "future",
+                    label: "apagar desta data em diante",
+                    tone: "warning" as const,
+                    onSelect: () => {
+                      endRecurrenceFrom(activeItem.recurrenceId ?? "", activeItem.date);
+                      closeWindow();
+                    },
+                  },
+                  {
+                    key: "recurrence",
+                    label: "apagar recorrência inteira",
+                    onSelect: () => {
+                      removeRecurrence(activeItem.recurrenceId ?? "");
+                      closeWindow();
+                    },
+                  },
+                ]
+              : [
+                  {
+                    key: "entry",
+                    label: "apagar lançamento",
+                    onSelect: () => {
+                      deleteItems([activeItem]);
+                      closeWindow();
+                    },
+                  },
+                ]
+            : undefined;
           return (
           <AddWindow
+            title={
+              windowMode === "add"
+                ? `adicionar ${KINDS.find((item) => item.key === windowKind)?.title ?? "lançamento"}`
+                : windowMode === "list"
+                  ? (KINDS.find((item) => item.key === windowKind)?.title ?? "lançamentos")
+                  : windowMode === "edit"
+                    ? "editar"
+                    : "detalhes"
+            }
             subtitle={new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
               "pt-BR",
               { day: "2-digit", month: "long", year: "numeric" },
             )}
-            onDeleteDay={() => deleteItems(windowDayItems)}
-            onDeleteMonth={() => clearMonthForDate(formDateParts.y, formDateParts.m)}
+            deleteActions={windowMode === "detail" ? detailDeleteActions : undefined}
+            onDeleteDay={windowMode === "add" ? undefined : () => deleteItems(windowDayItems)}
+            onDeleteMonth={windowMode === "add" ? undefined : () => clearMonthForDate(formDateParts.y, formDateParts.m)}
             deleteDayDisabled={windowDayItems.length === 0}
             deleteMonthDisabled={!monthHasItems}
-            onClose={() => {
-              setAdding(false);
-              setError(null);
-              setShowCal(false);
-              setEditTarget(null);
-            }}
-
+            onClose={closeWindow}
           >
-            {(() => {
-              const dayItems = windowDayItems;
-              if (dayItems.length === 0) return null;
-              return (
-                <div className="mb-3 rounded-2xl bg-card p-4">
-                  <div className="flex items-center justify-between gap-2 pb-2">
-                    <span className="text-xs font-medium text-muted-foreground">
-                      lançamentos deste dia
+            {windowMode === "list" && (
+              <div className="space-y-2">
+                {windowDayItems.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setActiveItemKey(item.key);
+                      setWindowMode("detail");
+                    }}
+                    className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-xl bg-card p-4 text-left transition-colors hover:bg-accent"
+                  >
+                    <span className="truncate text-sm font-semibold text-foreground">{item.detail}</span>
+                    <span className={`text-sm font-bold tabular-nums ${kindTone[item.kind]}`}>
+                      {brl(item.amount)}
                     </span>
-                    <button
-                      type="button"
-                      onClick={() => deleteItems(dayItems)}
-                      className={dangerBtn}
-                    >
-                      apagar todos
-                    </button>
-                  </div>
-                  <div className="divide-y divide-border">
-                    {dayItems.map((it) => (
-                      <DayItemDeleteRow
-                        key={it.key}
-                        item={it}
-                        onDeleteEntry={() => deleteItems([it])}
-                        onSkip={() =>
-                          it.recurrenceId && skipOccurrence(it.recurrenceId, it.date)
-                        }
-                        onEndFrom={() =>
-                          it.recurrenceId && endRecurrenceFrom(it.recurrenceId, it.date)
-                        }
-                        onRemoveRecurrence={() =>
-                          it.recurrenceId && removeRecurrence(it.recurrenceId)
-                        }
-                        onEditAmount={(value) => {
-                          if (it.recurrenceId) updateRecurrenceAmount(it.recurrenceId, value);
-                          else if (it.entryId) updateEntryAmount(it.entryId, value);
-                        }}
-                        onEditFull={() => startFullEdit(it)}
-                      />
+                    <span aria-hidden className="text-muted-foreground">›</span>
+                  </button>
+                ))}
+              </div>
+            )}
 
-                    ))}
-                  </div>
+            {windowMode === "detail" && activeItem && (
+              <div className="space-y-3">
+                <div className="rounded-2xl bg-card p-4">
+                  <p className="text-xs font-medium text-muted-foreground">identificação</p>
+                  <p className="mt-1 text-base font-semibold text-foreground">{activeItem.detail}</p>
                 </div>
-              );
-            })()}
+                <div className="rounded-2xl bg-card p-4">
+                  <p className="text-xs font-medium text-muted-foreground">valor</p>
+                  <p className={`mt-1 font-display text-2xl font-bold tabular-nums ${kindTone[activeItem.kind]}`}>
+                    {brl(activeItem.amount)}
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => startFullEdit(activeItem)}
+                  className="h-11 w-full rounded-xl border border-primary/40 bg-primary/10 text-sm font-semibold text-primary transition-colors hover:bg-primary/20"
+                >
+                  editar
+                </button>
+              </div>
+            )}
+
+            {(windowMode === "add" || windowMode === "edit") && (
             <form onSubmit={saveEntry} className="space-y-3">
               {/* valor */}
               <div className="rounded-2xl bg-card p-4">
@@ -1384,25 +1449,8 @@ function Index() {
                 />
               </div>
 
-              {/* categoria */}
-              <div className="rounded-2xl bg-card p-4">
-                <span className="text-xs font-medium text-muted-foreground">categoria</span>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {KINDS.map((k) => (
-                    <button
-                      key={k.key}
-                      type="button"
-                      onClick={() => setKind(k.key)}
-                      className={chip(kind === k.key)}
-                    >
-                      {k.title}
-                    </button>
-                  ))}
-                </div>
-              </div>
-
               {/* identificação */}
-              <div className="space-y-3 rounded-2xl bg-card p-4">
+              <div className="rounded-2xl bg-card p-4">
                 <label className="block space-y-1.5">
                   <span className="text-xs font-medium text-muted-foreground">identificação</span>
                   <input
@@ -1419,22 +1467,10 @@ function Index() {
                     ))}
                   </datalist>
                 </label>
-                <label className="block space-y-1.5">
-                  <span className="text-xs font-medium text-muted-foreground">
-                    nome / descrição (opcional)
-                  </span>
-                  <input
-                    maxLength={60}
-                    value={debtName}
-                    onChange={(ev) => setDebtName(ev.target.value)}
-                    placeholder="ex.: gasolina — abastecimento do carro"
-                    className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
-                  />
-                </label>
               </div>
 
               {/* data */}
-              <div className="rounded-2xl bg-card p-4">
+              {windowMode === "add" && <div className="rounded-2xl bg-card p-4">
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs font-medium text-muted-foreground">data</span>
                   <button
@@ -1449,32 +1485,12 @@ function Index() {
                     ).toLocaleDateString("pt-BR")}
                   </button>
                 </div>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  <button type="button" onClick={() => shiftFormDate(-1)} className={chip(false)}>
-                    -1 dia
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      setFormDate(iso(today.getFullYear(), today.getMonth(), today.getDate()))
-                    }
-                    className={chip(false)}
-                  >
-                    hoje
-                  </button>
-                  <button type="button" onClick={() => shiftFormDate(1)} className={chip(false)}>
-                    +1 dia
-                  </button>
-                  <button type="button" onClick={() => shiftFormDate(7)} className={chip(false)}>
-                    +7 dias
-                  </button>
-                </div>
                 {showCal && (
                   <div className="mt-3">
                     <MonthCalendar value={formDate} onChange={setFormDate} />
                   </div>
                 )}
-              </div>
+              </div>}
 
               {/* repetição */}
               <div className="space-y-3 rounded-2xl bg-card p-4">
@@ -1530,41 +1546,6 @@ function Index() {
                         sem fim
                       </button>
                     </div>
-                    <div className="flex flex-wrap gap-1.5 pt-1">
-                      {[12, 48, 360].map((n) => (
-                        <button
-                          key={n}
-                          type="button"
-                          onClick={() => {
-                            setInfinite(false);
-                            setInstallments(String(n));
-                          }}
-                          className={chip(!infinite && installments === String(n))}
-                        >
-                          {n}x
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {freq === "mensal" && (
-                  <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      dias do mês (pode escolher vários · 31 cai no último dia)
-                    </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {Array.from({ length: 31 }, (_, i) => i + 1).map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => toggle(daysOfMonth, d, setDaysOfMonth)}
-                          className={chip(daysOfMonth.includes(d))}
-                        >
-                          {d}
-                        </button>
-                      ))}
-                    </div>
                   </div>
                 )}
 
@@ -1589,7 +1570,8 @@ function Index() {
                 )}
               </div>
 
-              {/* tags */}
+              {/* tags são definidas somente ao adicionar e preservadas na edição */}
+              {windowMode === "add" && (
               <div className="space-y-2 rounded-2xl bg-card p-4">
                 <span className="text-xs font-medium text-muted-foreground">tags</span>
                 <div className="flex items-center gap-2">
@@ -1626,6 +1608,7 @@ function Index() {
                   </div>
                 )}
               </div>
+              )}
 
               {error && <p className="px-1 text-sm text-negative">{error}</p>}
 
@@ -1633,9 +1616,10 @@ function Index() {
                 type="submit"
                 className="h-12 w-full rounded-2xl bg-positive px-5 text-base font-semibold text-positive-foreground transition-opacity hover:opacity-90"
               >
-                {editTarget ? "salvar alterações" : `adicionar ${KINDS.find((k) => k.key === kind)!.title}`}
+                {windowMode === "edit" ? "salvar alterações" : `adicionar ${KINDS.find((k) => k.key === kind)!.title}`}
               </button>
             </form>
+            )}
           </AddWindow>
           );
         })()}
