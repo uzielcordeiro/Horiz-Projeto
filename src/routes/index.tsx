@@ -1371,7 +1371,7 @@ function Index() {
               windowMode === "add"
                 ? `adicionar ${KINDS.find((item) => item.key === windowKind)?.title ?? "lançamento"}`
                 : windowMode === "list"
-                  ? KINDS.find((item) => item.key === windowKind)?.title
+                  ? (KINDS.find((item) => item.key === windowKind)?.title ?? "lançamentos")
                   : windowMode === "edit"
                     ? "editar"
                     : "detalhes"
