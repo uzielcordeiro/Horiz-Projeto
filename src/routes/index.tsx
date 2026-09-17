@@ -3,12 +3,14 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
+import { MonthCalendar } from "@/components/MonthCalendar";
 import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
 import { TotalsBoard } from "@/components/TotalsBoard";
 import { TagsBoard, type TagRow } from "@/components/TagsBoard";
 import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
 import {
+  WEEKDAYS,
   occurrencesInMonth,
   sumBefore,
   type Occurrence,
@@ -566,6 +568,7 @@ function Index() {
       setDaysOfMonth(r.daysOfMonth ?? []);
       setDaysOfWeek(r.daysOfWeek ?? []);
       setEditTarget({ type: "rec", id: r.id });
+      setActiveItemKey(item.key);
       setWindowMode("edit");
       return;
     }
@@ -584,6 +587,7 @@ function Index() {
       setDaysOfMonth([]);
       setDaysOfWeek([]);
       setEditTarget({ type: "entry", id: en.id });
+      setActiveItemKey(item.key);
       setWindowMode("edit");
     }
   }
@@ -634,8 +638,6 @@ function Index() {
     // edição de um lançamento existente: preserva tudo, aplica só o que mudou
     if (editTarget) {
       const cleanLabel = label.trim() || (SUGGESTIONS[kind][0] ?? "Outro");
-      const recName =
-        debtName.trim() || label.trim() || KINDS.find((k) => k.key === kind)!.title;
       const isRec = freq !== "unico";
       let parcelas: number | null = null;
       let dom: number[] = [];
@@ -646,7 +648,7 @@ function Index() {
           setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
           return;
         }
-        dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [d]) : [];
+        dom = freq === "mensal" ? [d] : [];
         dow =
           freq === "semanal"
             ? daysOfWeek.length
@@ -659,15 +661,17 @@ function Index() {
       setError(null);
 
       if (editTarget.type === "entry") {
+        const original = entries.find((entry) => entry.id === editTarget.id);
+        if (!original) return;
         if (isRec) {
           commit(entries.filter((en) => en.id !== editTarget.id), [
             ...recurrences,
             {
               id: crypto.randomUUID(),
-              kind,
-              name: recName,
+              kind: original.kind,
+              name: cleanLabel,
               label: cleanLabel,
-              tags: cleanTags,
+              tags: original.tags ?? [],
               amount: value,
               freq: mappedFreq,
               daysOfMonth: dom,
@@ -676,7 +680,7 @@ function Index() {
               installments: parcelas,
               endDate: null,
               skipped: [],
-              horizonTransfer,
+              horizonTransfer: original.horizonTransfer === true,
             },
           ]);
         } else {
@@ -686,11 +690,7 @@ function Index() {
                 ? {
                     ...en,
                     amount: value,
-                    date,
-                    label: debtName.trim() || cleanLabel,
-                    kind,
-                    tags: cleanTags,
-                    horizonTransfer,
+                    label: cleanLabel,
                   }
                 : en,
             ),
@@ -698,39 +698,39 @@ function Index() {
           );
         }
       } else if (isRec) {
+        const original = recurrences.find((recurrence) => recurrence.id === editTarget.id);
+        if (!original) return;
         commit(
           entries,
           recurrences.map((r) =>
             r.id === editTarget.id
               ? {
                   ...r,
-                  kind,
-                  name: recName,
+                  name: cleanLabel,
                   label: cleanLabel,
-                  tags: cleanTags,
                   amount: value,
                   freq: mappedFreq,
                   daysOfMonth: dom,
                   daysOfWeek: dow,
-                  startDate: date,
                   installments: parcelas,
-                  horizonTransfer,
                 }
               : r,
           ),
         );
       } else {
+        const original = recurrences.find((recurrence) => recurrence.id === editTarget.id);
+        if (!original) return;
         commit(
           [
             ...entries,
             {
               id: crypto.randomUUID(),
               amount: value,
-              date,
-              label: debtName.trim() || cleanLabel,
-              kind,
-              tags: cleanTags,
-              horizonTransfer,
+              date: original.startDate,
+              label: cleanLabel,
+              kind: original.kind as Kind,
+              tags: original.tags ?? [],
+              horizonTransfer: original.horizonTransfer === true,
             },
           ],
           recurrences.filter((r) => r.id !== editTarget.id),
@@ -752,7 +752,7 @@ function Index() {
         setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
         return;
       }
-      const dom = freq === "mensal" ? (daysOfMonth.length ? daysOfMonth : [d]) : [];
+      const dom = freq === "mensal" ? [d] : [];
       const dow =
         freq === "semanal"
           ? daysOfWeek.length
