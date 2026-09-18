@@ -1231,8 +1231,17 @@ function Index() {
                         setWindowKind(openingKind);
                         setEditTarget(null);
                         setFormOrigin("standard");
-                        setActiveItemKey(null);
-                        setWindowMode(row.totals[openingKind] > 0 ? "list" : "add");
+                        const categoryItems = row.items.filter(
+                          (item) => item.recurrenceId !== FORECAST_ID && item.kind === openingKind,
+                        );
+                        setActiveItemKey(categoryItems.length === 1 ? categoryItems[0]?.key ?? null : null);
+                        setWindowMode(
+                          categoryItems.length === 0
+                            ? "add"
+                            : categoryItems.length === 1
+                              ? "detail"
+                              : "list",
+                        );
                         setAdding(true);
                       }}
                       className={`grid w-full ${GRID} items-stretch px-3 py-2.5 text-left transition-colors hover:bg-accent/50 ${
@@ -1381,10 +1390,6 @@ function Index() {
               { day: "2-digit", month: "long", year: "numeric" },
             )}
             deleteActions={windowMode === "detail" ? detailDeleteActions : undefined}
-            onDeleteDay={windowMode === "add" ? undefined : () => deleteItems(windowDayItems)}
-            onDeleteMonth={windowMode === "add" ? undefined : () => clearMonthForDate(formDateParts.y, formDateParts.m)}
-            deleteDayDisabled={windowDayItems.length === 0}
-            deleteMonthDisabled={!monthHasItems}
             onClose={closeWindow}
           >
             {windowMode === "list" && (
@@ -1549,7 +1554,7 @@ function Index() {
                   </div>
                 )}
 
-                {freq === "semanal" && (
+                {freq === "semanal" && windowMode === "add" && (
                   <div className="space-y-2">
                     <p className="text-xs font-medium text-muted-foreground">
                       dias da semana (pode escolher vários)
