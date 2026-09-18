@@ -6,3 +6,4 @@
 - [x] Sincronização bidirecional: editar/apagar na aba previsão reflete no calendário; apagar a saída automática no calendário limpa a previsão
 - [x] Horizonte: verde-escuro para saldo acima de R$ 2.000
 - [x] Transferências do Horizonte para Economias reduzem o saldo futuro e devolvem valores ao editar/apagar
+- [x] Janela compacta separada em adicionar, lista, detalhes e edição simplificada por categoria
