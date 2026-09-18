@@ -10,11 +10,11 @@ type Props = {
     tone?: "negative" | "warning";
     disabled?: boolean;
     onSelect: () => void;
-  }[];
-  onDeleteDay?: () => void;
-  onDeleteMonth?: () => void;
-  deleteDayDisabled?: boolean;
-  deleteMonthDisabled?: boolean;
+  }[] | undefined;
+  onDeleteDay?: (() => void) | undefined;
+  onDeleteMonth?: (() => void) | undefined;
+  deleteDayDisabled?: boolean | undefined;
+  deleteMonthDisabled?: boolean | undefined;
   children: ReactNode;
 };
 
