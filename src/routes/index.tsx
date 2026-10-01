@@ -98,6 +98,12 @@ const iso = (y: number, m: number, d: number) =>
 const monthLabel = (y: number, m: number) =>
   new Date(y, m, 1).toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
 
+/** Data por extenso, com "1º" no primeiro dia do mês. */
+const longDate = (isoDate: string) =>
+  new Date(isoDate + "T12:00:00")
+    .toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })
+    .replace(/^1\s/, "1º ");
+
 type Status = "positive" | "warning" | "negative";
 const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b >= 0 ? "warning" : "negative");
 const horizonStatusOf = (b: number): "surplus" | Status =>
@@ -1459,8 +1465,8 @@ function Index() {
                     <p className="text-xs font-medium text-muted-foreground">origem</p>
                     <p className="mt-1 text-sm font-semibold text-foreground">
                       {activeItem.horizonTransfer
-                        ? `Retirado do Horizonte em ${new Date(activeItem.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}`
-                        : `Lançado em ${new Date(activeItem.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}`}
+                        ? `Retirado do Horizonte em ${longDate(activeItem.date)}`
+                        : `Lançado em ${longDate(activeItem.date)}`}
                     </p>
                     <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                       Para adicionar ou retirar valores, use o Horizonte.
