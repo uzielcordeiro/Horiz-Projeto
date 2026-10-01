@@ -107,7 +107,7 @@ const longDate = (isoDate: string) =>
 type Status = "positive" | "warning" | "negative";
 const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b >= 0 ? "warning" : "negative");
 const horizonStatusOf = (b: number): "surplus" | Status =>
-  b > 2000 ? "surplus" : statusOf(b);
+  b >= 2000 ? "surplus" : statusOf(b);
 const saldoCell: Record<Status, string> = {
   positive: "bg-positive/15 text-positive",
   warning: "bg-warning/20 text-warning-foreground",
