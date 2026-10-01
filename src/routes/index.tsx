@@ -167,7 +167,7 @@ function Index() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const [windowMode, setWindowMode] = useState<"add" | "list" | "detail" | "edit">("add");
+  const [windowMode, setWindowMode] = useState<"add" | "list" | "detail" | "edit" | "info">("add");
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
   const [view, setView] = useState<"saldos" | "horizonte" | "totais" | "tags" | "menu" | "diario">("saldos");
   const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
@@ -1230,8 +1230,17 @@ function Index() {
                         const categoryItems = row.items.filter(
                           (item) => item.recurrenceId !== FORECAST_ID && item.kind === openingKind,
                         );
-                        // diários: só reflexo (editado no Menu); economias: só leitura (editado no Horizonte)
-                        if (openingKind === "diarios") return;
+                        // diários: só reflexo (manipulado no Menu); economias: só leitura (manipulado no Horizonte)
+                        if (openingKind === "diarios") {
+                          setKind("diarios");
+                          setWindowKind("diarios");
+                          setEditTarget(null);
+                          setActiveItemKey(null);
+                          setFormOrigin("standard");
+                          setWindowMode("info");
+                          setAdding(true);
+                          return;
+                        }
                         if (openingKind === "economias" && categoryItems.length === 0) return;
                         resetForm();
                         setError(null);
@@ -1391,7 +1400,9 @@ function Index() {
                   ? (KINDS.find((item) => item.key === windowKind)?.title ?? "lançamentos")
                   : windowMode === "edit"
                     ? "editar"
-                    : "detalhes"
+                    : windowMode === "info"
+                      ? (KINDS.find((item) => item.key === windowKind)?.title ?? "diários")
+                      : "detalhes"
             }
             subtitle={new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
               "pt-BR",
@@ -1422,6 +1433,15 @@ function Index() {
               </div>
             )}
 
+            {windowMode === "info" && (
+              <div className="rounded-2xl bg-card p-4">
+                <p className="text-sm leading-relaxed font-semibold text-foreground">
+                  Para adicionar ou retirar valores, use o{" "}
+                  <span className="font-bold tracking-wide text-primary uppercase">Menu</span>.
+                </p>
+              </div>
+            )}
+
             {windowMode === "detail" && activeItem && (
               <div className="space-y-3">
                 <div className="rounded-2xl bg-card p-4">
@@ -1439,11 +1459,11 @@ function Index() {
                     <p className="text-xs font-medium text-muted-foreground">origem</p>
                     <p className="mt-1 text-sm font-semibold text-foreground">
                       {activeItem.horizonTransfer
-                        ? `tirado do horizonte em ${new Date(activeItem.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}`
-                        : `lançado em ${new Date(activeItem.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}`}
+                        ? `Retirado do Horizonte em ${new Date(activeItem.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}`
+                        : `Lançado em ${new Date(activeItem.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}`}
                     </p>
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      para colocar ou retirar, use o horizonte.
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                      Para adicionar ou retirar valores, use o Horizonte.
                     </p>
                   </div>
                 ) : (
