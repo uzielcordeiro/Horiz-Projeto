@@ -7,3 +7,6 @@
 - [x] Horizonte: verde-escuro para saldo acima de R$ 2.000
 - [x] Transferências do Horizonte para Economias reduzem o saldo futuro e devolvem valores ao editar/apagar
 - [x] Janela compacta separada em adicionar, lista, detalhes e edição simplificada por categoria
+
+- [ ] Calendário: Diários e Economias só leitura (Diários editado só no Menu, Economias só no Horizonte)
+- [ ] Economias: ao clicar no valor, mostrar "tirado do dia X de mês" (origem no Horizonte)
