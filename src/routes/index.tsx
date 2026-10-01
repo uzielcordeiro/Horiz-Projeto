@@ -1227,13 +1227,21 @@ function Index() {
                           .closest("[data-kind]")
                           ?.getAttribute("data-kind") as Kind | null;
                         const openingKind = clickedKind ?? "entradas";
+                        const categoryItems = row.items.filter(
+                          (item) => item.recurrenceId !== FORECAST_ID && item.kind === openingKind,
+                        );
+                        // diários: só reflexo (editado no Menu); economias: só leitura (editado no Horizonte)
+                        if (openingKind === "diarios") return;
+                        if (openingKind === "economias" && categoryItems.length === 0) return;
+                        resetForm();
+                        setError(null);
+                        setShowCal(false);
+                        setSelectedDay(row.day);
+                        setFormDate(row.date);
                         setKind(openingKind);
                         setWindowKind(openingKind);
                         setEditTarget(null);
                         setFormOrigin("standard");
-                        const categoryItems = row.items.filter(
-                          (item) => item.recurrenceId !== FORECAST_ID && item.kind === openingKind,
-                        );
                         setActiveItemKey(categoryItems.length === 1 ? categoryItems[0]?.key ?? null : null);
                         setWindowMode(
                           categoryItems.length === 0
@@ -1426,6 +1434,19 @@ function Index() {
                     {brl(activeItem.amount)}
                   </p>
                 </div>
+                {activeItem.kind === "economias" ? (
+                  <div className="rounded-2xl bg-card p-4">
+                    <p className="text-xs font-medium text-muted-foreground">origem</p>
+                    <p className="mt-1 text-sm font-semibold text-foreground">
+                      {activeItem.horizonTransfer
+                        ? `tirado do horizonte em ${new Date(activeItem.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}`
+                        : `lançado em ${new Date(activeItem.date + "T12:00:00").toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" })}`}
+                    </p>
+                    <p className="mt-2 text-xs text-muted-foreground">
+                      para colocar ou retirar, use o horizonte.
+                    </p>
+                  </div>
+                ) : (
                 <button
                   type="button"
                   onClick={() => startFullEdit(activeItem)}
@@ -1433,6 +1454,7 @@ function Index() {
                 >
                   editar
                 </button>
+                )}
               </div>
             )}
 
