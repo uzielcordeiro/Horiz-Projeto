@@ -904,6 +904,71 @@ function Index() {
     if (recurrenceId === FORECAST_ID) setForecastItems([]);
   }
 
+  /** leva da origem (Economias no calendário) até o dia exato no Horizonte */
+  function jumpToHorizon(item: DayItem) {
+    const [yy, mm] = item.date.split("-").map(Number);
+    setAdding(false);
+    setError(null);
+    setShowCal(false);
+    setEditTarget(null);
+    setActiveItemKey(null);
+    setHorizonStart({ y: yy ?? today.getFullYear(), m: (mm ?? 1) - 1 });
+    setView("horizonte");
+    setHorizonHighlight(item.date);
+    setHorizonJump({ item, amount: fmtAmount(item.amount), ask: null, error: null });
+    window.setTimeout(() => setHorizonHighlight((h) => (h === item.date ? null : h)), 4000);
+    requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        document
+          .querySelector(`[data-horizon-day="${item.date}"]`)
+          ?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+      }),
+    );
+  }
+
+  /** aplica salvar/desfazer da janela do Horizonte */
+  function applyHorizonJump(action: "save" | "undo", scope: "day" | "all") {
+    if (!horizonJump) return;
+    const { item } = horizonJump;
+    const value = action === "undo" ? 0 : parseAmount(horizonJump.amount);
+    if (!Number.isFinite(value) || value < 0) {
+      setHorizonJump({ ...horizonJump, ask: null, error: "Informe um valor válido." });
+      return;
+    }
+    const remove = value === 0;
+    if (item.entryId) {
+      if (remove) removeEntry(item.entryId);
+      else updateEntryAmount(item.entryId, value);
+    } else if (item.recurrenceId) {
+      const r = recurrences.find((x) => x.id === item.recurrenceId);
+      if (!r) return;
+      if (scope === "all") {
+        if (remove) removeRecurrence(r.id);
+        else updateRecurrenceAmount(r.id, value);
+      } else {
+        const nextRecs = recurrences.map((x) =>
+          x.id === r.id ? { ...x, skipped: [...x.skipped, item.date] } : x,
+        );
+        const nextEntries = remove
+          ? entries
+          : [
+              ...entries,
+              {
+                id: crypto.randomUUID(),
+                amount: value,
+                date: item.date,
+                label: r.name || r.label,
+                kind: "economias" as Kind,
+                tags: r.tags ?? [],
+                horizonTransfer: true,
+              },
+            ];
+        commit(nextEntries, nextRecs);
+      }
+    }
+    setHorizonJump(null);
+  }
+
   function deleteAll() {
     commit([], []);
     setForecastItems([]);
