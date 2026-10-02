@@ -1133,7 +1133,92 @@ function Index() {
 
       <main className="w-full space-y-6 px-5 py-6 sm:px-8">
         {view === "horizonte" && !adding ? (
+          <>
+          {horizonJump && (() => {
+            const j = horizonJump;
+            const isRec = !!j.item.recurrenceId;
+            const run = (action: "save" | "undo") => {
+              if (isRec) setHorizonJump({ ...j, ask: action, error: null });
+              else applyHorizonJump(action, "day");
+            };
+            return (
+              <AddWindow
+                title="ajustar economia"
+                subtitle={longDate(j.item.date)}
+                onClose={() => setHorizonJump(null)}
+              >
+                <div className="space-y-3">
+                  <div className="rounded-2xl bg-card p-4">
+                    <p className="text-xs font-medium text-muted-foreground">identificação</p>
+                    <p className="mt-1 text-base font-semibold text-foreground">{j.item.detail}</p>
+                  </div>
+                  <div className="rounded-2xl bg-card p-4">
+                    <span className="text-xs font-medium text-muted-foreground">valor</span>
+                    <input
+                      autoFocus
+                      inputMode="decimal"
+                      maxLength={20}
+                      value={j.amount}
+                      onChange={(ev) =>
+                        setHorizonJump({ ...j, amount: sanitizeAmountInput(ev.target.value), ask: null, error: null })
+                      }
+                      placeholder="0,00"
+                      className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 font-display text-2xl font-bold tabular-nums text-foreground outline-none focus:border-primary"
+                    />
+                    <p className="mt-2 text-xs text-muted-foreground">deixe 0 para zerar e devolver ao saldo.</p>
+                  </div>
+                  {j.error && <p className="text-xs font-semibold text-negative">{j.error}</p>}
+                  {j.ask ? (
+                    <div className="space-y-2 rounded-2xl bg-card p-4">
+                      <p className="text-sm font-semibold text-foreground">
+                        {j.ask === "undo" ? "desfazer em:" : "salvar em:"}
+                      </p>
+                      <button
+                        type="button"
+                        onClick={() => applyHorizonJump(j.ask!, "day")}
+                        className="h-11 w-full rounded-xl bg-primary/10 text-sm font-semibold text-primary hover:bg-primary/20"
+                      >
+                        só este dia
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => applyHorizonJump(j.ask!, "all")}
+                        className="h-11 w-full rounded-xl bg-warning/20 text-sm font-semibold text-warning-foreground hover:bg-warning/30"
+                      >
+                        todas as repetições
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setHorizonJump({ ...j, ask: null })}
+                        className="h-9 w-full text-xs font-medium text-muted-foreground"
+                      >
+                        voltar
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => run("undo")}
+                        className="h-11 rounded-xl border border-negative/40 bg-negative/10 text-sm font-semibold text-negative hover:bg-negative/20"
+                      >
+                        desfazer
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => run("save")}
+                        className="h-11 rounded-xl bg-primary text-sm font-semibold text-primary-foreground hover:opacity-90"
+                      >
+                        salvar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </AddWindow>
+            );
+          })()}
           <HorizonBoard
+            highlightDate={horizonHighlight}
             months={horizonMonths}
             todayIso={iso(today.getFullYear(), today.getMonth(), today.getDate())}
             rangeLabel={`${monthLabel(horizonMonths[0]!.y, horizonMonths[0]!.m)} — ${monthLabel(
@@ -1534,17 +1619,35 @@ function Index() {
                   </p>
                 </div>
                 {activeItem.kind === "economias" ? (
+                  activeItem.horizonTransfer ? (
+                    <button
+                      type="button"
+                      onClick={() => jumpToHorizon(activeItem)}
+                      aria-label="Ir para este dia no Horizonte"
+                      className="block w-full rounded-2xl border border-primary/30 bg-card p-4 text-left transition-colors hover:bg-primary/10"
+                    >
+                      <span className="flex items-center justify-between gap-2">
+                        <span className="text-xs font-medium text-muted-foreground">origem</span>
+                        <span className="text-xs font-semibold text-primary">ir ao Horizonte ›</span>
+                      </span>
+                      <span className="mt-1 block text-sm font-semibold text-foreground">
+                        {`Retirado do Horizonte em ${longDate(activeItem.date)}`}
+                      </span>
+                      <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">
+                        Para adicionar ou retirar valores, use o Horizonte.
+                      </span>
+                    </button>
+                  ) : (
                   <div className="rounded-2xl bg-card p-4">
                     <p className="text-xs font-medium text-muted-foreground">origem</p>
                     <p className="mt-1 text-sm font-semibold text-foreground">
-                      {activeItem.horizonTransfer
-                        ? `Retirado do Horizonte em ${longDate(activeItem.date)}`
-                        : `Lançado em ${longDate(activeItem.date)}`}
+                      {`Lançado em ${longDate(activeItem.date)}`}
                     </p>
                     <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                       Para adicionar ou retirar valores, use o Horizonte.
                     </p>
                   </div>
+                  )
                 ) : (
                 <button
                   type="button"
