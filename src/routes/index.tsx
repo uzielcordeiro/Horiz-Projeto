@@ -213,6 +213,14 @@ function Index() {
   // edição completa de um lançamento já existente (mantém tudo, muda só o que você alterar)
   const [editTarget, setEditTarget] = useState<{ type: "entry" | "rec"; id: string } | null>(null);
   const [formOrigin, setFormOrigin] = useState<"standard" | "horizon">("standard");
+  // janela de ajuste no Horizonte — só abre quando se vem da origem de Economias no calendário
+  const [horizonJump, setHorizonJump] = useState<{
+    item: DayItem;
+    amount: string;
+    ask: null | "save" | "undo";
+    error: string | null;
+  } | null>(null);
+  const [horizonHighlight, setHorizonHighlight] = useState<string | null>(null);
   const [selected, setSelected] = useState<Record<string, DayItem>>({});
   const [confirmAll, setConfirmAll] = useState<"mes" | "ano" | "tudo" | null>(null);
 
