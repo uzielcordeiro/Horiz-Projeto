@@ -916,7 +916,6 @@ function Index() {
     setView("horizonte");
     setHorizonHighlight(item.date);
     setHorizonJump({ item, amount: fmtAmount(item.amount), ask: null, error: null });
-    window.setTimeout(() => setHorizonHighlight((h) => (h === item.date ? null : h)), 4000);
     requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         document
@@ -1232,6 +1231,7 @@ function Index() {
               })
             }
             onPick={(y, m, day) => {
+              setHorizonHighlight(null);
               resetForm();
               setError(null);
               setShowCal(false);
