@@ -1247,6 +1247,7 @@ function Index() {
               setAdding(true);
             }}
           />
+          </>
         ) : view === "totais" && !adding ? (
           <TotalsBoard data={totalsData} />
         ) : (view === "diario" || view === "menu") && !adding ? (
