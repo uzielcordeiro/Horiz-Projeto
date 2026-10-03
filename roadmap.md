@@ -10,3 +10,4 @@
 
 - [x] Calendário: Diários e Economias só leitura (Diários editado só no Menu, Economias só no Horizonte)
 - [x] Economias: ao clicar no valor, mostrar "tirado do dia X de mês" (origem no Horizonte)
+- [x] Economias: origem leva ao dia exato no Horizonte, com janela para editar/desfazer (só vindo do calendário)
