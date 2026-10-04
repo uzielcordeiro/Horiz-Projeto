@@ -12,3 +12,4 @@
 - [x] Economias: ao clicar no valor, mostrar "tirado do dia X de mês" (origem no Horizonte)
 - [x] Economias: origem leva ao dia exato no Horizonte, com janela para editar/desfazer (só vindo do calendário)
 - [x] Horizonte: navegar até a data de origem e manter a célula marcada com borda pontilhada animada após fechar o ajuste
+- [x] Calendário: Saldos só leitura, com caixa "use as outras colunas"
