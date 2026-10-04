@@ -183,7 +183,7 @@ function Index() {
   const [forecastDivisor, setForecastDivisor] = useState(30);
 
   const [kind, setKind] = useState<Kind>("entradas");
-  const [windowKind, setWindowKind] = useState<Kind>("entradas");
+  const [windowKind, setWindowKind] = useState<Kind | "saldos">("entradas");
   const [amount, setAmount] = useState("");
   const [label, setLabel] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -1396,12 +1396,21 @@ function Index() {
                         setFormDate(row.date);
                         const clickedKind = (ev.target as HTMLElement)
                           .closest("[data-kind]")
-                          ?.getAttribute("data-kind") as Kind | null;
+                          ?.getAttribute("data-kind") as Kind | "saldos" | null;
                         const openingKind = clickedKind ?? "entradas";
                         const categoryItems = row.items.filter(
                           (item) => item.recurrenceId !== FORECAST_ID && item.kind === openingKind,
                         );
-                        // diários: só reflexo (manipulado no Menu); economias: só leitura (manipulado no Horizonte)
+                        // saldos e diários: só reflexo (manipulação nas outras colunas / no Menu)
+                        if (openingKind === "saldos") {
+                          setWindowKind("saldos");
+                          setEditTarget(null);
+                          setActiveItemKey(null);
+                          setFormOrigin("standard");
+                          setWindowMode("info");
+                          setAdding(true);
+                          return;
+                        }
                         if (openingKind === "diarios") {
                           setKind("diarios");
                           setWindowKind("diarios");
@@ -1458,7 +1467,10 @@ function Index() {
                           {brl(row.totals[k.key])}
                         </span>
                       ))}
-                      <span className="flex items-center justify-end border-l border-border/70 px-2">
+                      <span
+                        data-kind="saldos"
+                        className="flex items-center justify-end border-l border-border/70 px-2"
+                      >
                         <span
                           className={`rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
                         >
