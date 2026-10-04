@@ -1584,7 +1584,8 @@ function Index() {
                   : windowMode === "edit"
                     ? "editar"
                     : windowMode === "info"
-                      ? (KINDS.find((item) => item.key === windowKind)?.title ?? "diários")
+                      ? (KINDS.find((item) => item.key === windowKind)?.title ??
+                          (windowKind === "saldos" ? "saldos" : "diários"))
                       : "detalhes"
             }
             subtitle={new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
@@ -1619,8 +1620,16 @@ function Index() {
             {windowMode === "info" && (
               <div className="rounded-2xl bg-card p-4">
                 <p className="text-sm leading-relaxed font-semibold text-foreground">
-                  Para adicionar ou retirar valores, use o{" "}
-                  <span className="font-bold tracking-wide text-primary uppercase">Menu</span>.
+                  Para adicionar ou retirar valores, use{" "}
+                  {windowKind === "saldos" ? (
+                    <span className="font-bold tracking-wide text-primary">as outras colunas</span>
+                  ) : (
+                    <>
+                      o{" "}
+                      <span className="font-bold tracking-wide text-primary uppercase">Menu</span>
+                    </>
+                  )}
+                  .
                 </p>
               </div>
             )}
