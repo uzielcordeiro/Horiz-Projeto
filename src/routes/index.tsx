@@ -1421,7 +1421,16 @@ function Index() {
                           setAdding(true);
                           return;
                         }
-                        if (openingKind === "economias" && categoryItems.length === 0) return;
+                        // economias sem lançamento: só o aviso (manipulação no Horizonte)
+                        if (openingKind === "economias" && categoryItems.length === 0) {
+                          setWindowKind("economias");
+                          setEditTarget(null);
+                          setActiveItemKey(null);
+                          setFormOrigin("standard");
+                          setWindowMode("info");
+                          setAdding(true);
+                          return;
+                        }
                         resetForm();
                         setError(null);
                         setShowCal(false);
@@ -1623,6 +1632,11 @@ function Index() {
                   Para adicionar ou retirar valores, use{" "}
                   {windowKind === "saldos" ? (
                     <span className="font-bold tracking-wide text-primary">as outras colunas</span>
+                  ) : windowKind === "economias" ? (
+                    <>
+                      o{" "}
+                      <span className="font-bold tracking-wide text-primary">Horizonte</span>
+                    </>
                   ) : (
                     <>
                       o{" "}
