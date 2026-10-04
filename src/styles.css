@@ -67,6 +67,7 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-negative: var(--negative);
   --color-negative-foreground: var(--negative-foreground);
+  --color-horizon-marker: var(--horizon-marker);
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
 }
@@ -180,6 +181,7 @@
   --warning-foreground: oklch(0.28 0.06 85);
   --negative: oklch(0.6 0.2 25);
   --negative-foreground: oklch(0.99 0.01 25);
+  --horizon-marker: oklch(0.59 0.21 257);
 }
 
 @layer base {
@@ -188,5 +190,39 @@
   }
   h1, h2, h3, .font-display {
     font-family: var(--font-display);
+  }
+}
+
+@keyframes horizon-marching-ants {
+  to {
+    background-position: 12px 0, 100% 12px, -12px 100%, 0 -12px;
+  }
+}
+
+@utility horizon-cut-marker {
+  position: relative;
+  isolation: isolate;
+
+  &::after {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    content: "";
+    background-image:
+      repeating-linear-gradient(90deg, var(--color-horizon-marker) 0 7px, transparent 7px 12px),
+      repeating-linear-gradient(180deg, var(--color-horizon-marker) 0 7px, transparent 7px 12px),
+      repeating-linear-gradient(270deg, var(--color-horizon-marker) 0 7px, transparent 7px 12px),
+      repeating-linear-gradient(0deg, var(--color-horizon-marker) 0 7px, transparent 7px 12px);
+    background-repeat: repeat-x, repeat-y, repeat-x, repeat-y;
+    background-position: 0 0, 100% 0, 0 100%, 0 0;
+    background-size: 12px 2px, 2px 12px, 12px 2px, 2px 12px;
+    animation: horizon-marching-ants 0.7s linear infinite;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .horizon-cut-marker::after {
+    animation: none;
   }
 }

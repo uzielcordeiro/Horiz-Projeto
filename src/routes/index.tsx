@@ -916,14 +916,20 @@ function Index() {
     setView("horizonte");
     setHorizonHighlight(item.date);
     setHorizonJump({ item, amount: fmtAmount(item.amount), ask: null, error: null });
-    requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        document
-          .querySelector(`[data-horizon-day="${item.date}"]`)
-          ?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-      }),
-    );
   }
+
+  // Aguarda o mês de destino ser renderizado antes de centralizar o dia.
+  // Assim, saltos para anos distantes também chegam à célula correta.
+  useEffect(() => {
+    if (view !== "horizonte" || !horizonHighlight) return;
+    const frame = requestAnimationFrame(() => {
+      const target = document.querySelector<HTMLElement>(
+        `[data-horizon-day="${horizonHighlight}"]`,
+      );
+      target?.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [view, horizonHighlight, horizonStart]);
 
   /** aplica salvar/desfazer da janela do Horizonte */
   function applyHorizonJump(action: "save" | "undo", scope: "day" | "all") {
