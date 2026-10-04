@@ -95,15 +95,16 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso, hi
                         key={d.date}
                         type="button"
                         data-horizon-day={d.date}
+                        data-horizon-highlighted={d.date === highlightDate ? "true" : undefined}
                         onClick={() => onPick(mo.y, mo.m, d.day)}
                         className={`grid h-8 w-full grid-cols-[34px_minmax(0,1fr)] items-center text-xs transition-opacity hover:opacity-80 ${cell[d.status]} ${
                           isToday ? "border-b-2 border-foreground" : ""
-                        }`}
+                        } ${d.date === highlightDate ? "horizon-cut-marker" : ""}`}
                       >
                         <span
                           className={`h-full grid place-items-center bg-background/60 tabular-nums ${
                             isToday ? "font-bold text-foreground" : "text-muted-foreground"
-                          } ${d.date === highlightDate ? "font-bold underline decoration-primary decoration-2 underline-offset-4" : ""}`}
+                          } ${d.date === highlightDate ? "font-bold text-foreground" : ""}`}
                         >
                           {d.day}
                         </span>
