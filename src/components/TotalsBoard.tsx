@@ -21,7 +21,7 @@ const LIST: { key: Kind; title: string }[] = [
   { key: "entradas", title: "entradas" },
   { key: "saidas", title: "saídas" },
   { key: "diarios", title: "diários" },
-  { key: "economias", title: "economias" },
+  { key: "economias", title: "poupança" },
   { key: "cartao", title: "gastos com cartão" },
 ];
 
@@ -95,7 +95,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
             }
           />
           <Card
-            title="economizado"
+            title="poupança"
             formula={
               <>
                 <Dot k="economias" />

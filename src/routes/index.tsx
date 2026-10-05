@@ -24,13 +24,13 @@ export const Route = createFileRoute("/")({
       {
         name: "description",
         content:
-          "Agenda financeira dia a dia: entradas, saídas parceladas ou recorrentes, diários, economias, cartão e saldo acumulado.",
+          "Agenda financeira dia a dia: entradas, saídas parceladas ou recorrentes, diários, poupança, cartão e saldo acumulado.",
       },
       { property: "og:title", content: "Saldos — Linha do Tempo Financeira" },
       {
         property: "og:description",
         content:
-          "Agenda financeira dia a dia: entradas, saídas parceladas ou recorrentes, diários, economias, cartão e saldo acumulado.",
+          "Agenda financeira dia a dia: entradas, saídas parceladas ou recorrentes, diários, poupança, cartão e saldo acumulado.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
@@ -64,7 +64,7 @@ const KINDS: { key: Kind; title: string; sign: 1 | -1 | 0 }[] = [
   { key: "saidas", title: "saídas", sign: -1 },
   { key: "diarios", title: "diários", sign: -1 },
   // economias é independente: não entra no saldo (sign 0)
-  { key: "economias", title: "economias", sign: 0 },
+  { key: "economias", title: "poupança", sign: 0 },
   { key: "cartao", title: "cartão", sign: -1 },
 ];
 
@@ -1148,7 +1148,7 @@ function Index() {
             };
             return (
               <AddWindow
-                title="ajustar economia"
+                title="ajustar poupança"
                 subtitle={longDate(j.item.date)}
                 onClose={() => setHorizonJump(null)}
               >
@@ -1666,17 +1666,20 @@ function Index() {
                       type="button"
                       onClick={() => jumpToHorizon(activeItem)}
                       aria-label="Ir para este dia no Horizonte"
-                      className="block w-full rounded-2xl border border-primary/30 bg-card p-4 text-left transition-colors hover:bg-primary/10"
+                      className="block w-full rounded-2xl border border-primary/30 bg-card p-4 text-left transition-colors"
                     >
                       <span className="flex items-center justify-between gap-2">
                         <span className="text-xs font-medium text-muted-foreground">origem</span>
-                        <span className="text-xs font-semibold text-primary">ir ao Horizonte ›</span>
+                        <span className="inline-flex h-8 items-center gap-1 rounded-lg border border-primary/40 bg-primary/15 px-3 text-sm font-semibold text-primary">
+                          ir ao Horizonte
+                          <span aria-hidden>›</span>
+                        </span>
                       </span>
                       <span className="mt-1 block text-sm font-semibold text-foreground">
-                        {`Retirado do Horizonte em ${longDate(activeItem.date)}`}
+                        {`Poupado do Horizonte em ${longDate(activeItem.date)}`}
                       </span>
                       <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">
-                        Para adicionar ou retirar valores, use o Horizonte.
+                        Para adicionar ou poupar valores, use o Horizonte.
                       </span>
                     </button>
                   ) : (
@@ -1686,7 +1689,7 @@ function Index() {
                       {`Lançado em ${longDate(activeItem.date)}`}
                     </p>
                     <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-                      Para adicionar ou retirar valores, use o Horizonte.
+                      Para adicionar ou poupar valores, use o Horizonte.
                     </p>
                   </div>
                   )
@@ -1820,7 +1823,7 @@ function Index() {
                       <button
                         type="button"
                         onClick={() => setInfinite((v) => !v)}
-                        className={`min-w-0 flex-1 ${chip(infinite)}`}
+                        className={`${chip(infinite)} !h-10 min-w-0 flex-1 !rounded-xl !px-3 !text-sm`}
                       >
                         sem fim
                       </button>
@@ -1867,7 +1870,7 @@ function Index() {
                     placeholder="ex.: extra, fixo, carro"
                     className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                   />
-                  <button type="button" onClick={() => addTag(tagInput)} className={chip(false)}>
+                  <button type="button" onClick={() => addTag(tagInput)} className={`${chip(false)} !h-10 !w-10 shrink-0 !rounded-xl !px-0 !text-sm`}>
                     ＋
                   </button>
                 </div>

@@ -229,7 +229,7 @@ export function DailyForecastBoard({
                     key={p}
                     type="button"
                     onClick={() => setPeriod(p)}
-                    className={`h-10 rounded-xl border text-sm font-medium transition-colors ${
+                    className={`h-11 rounded-xl border text-sm font-medium transition-colors ${
                       period === p
                         ? "border-transparent bg-accent text-accent-foreground"
                         : "border-border text-muted-foreground hover:bg-accent/60"
