@@ -226,3 +226,10 @@
     animation: none;
   }
 }
+
+@layer base {
+  html,
+  body {
+    overscroll-behavior-x: none;
+  }
+}

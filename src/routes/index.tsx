@@ -1397,7 +1397,9 @@ function Index() {
                         const clickedKind = (ev.target as HTMLElement)
                           .closest("[data-kind]")
                           ?.getAttribute("data-kind") as Kind | "saldos" | null;
-                        const openingKind = clickedKind ?? "entradas";
+                        // clique fora de uma coluna (cantos/espaços): não abre nada
+                        if (!clickedKind) return;
+                        const openingKind = clickedKind;
                         const categoryItems = row.items.filter(
                           (item) => item.recurrenceId !== FORECAST_ID && item.kind === openingKind,
                         );
@@ -1421,11 +1423,13 @@ function Index() {
                           setAdding(true);
                           return;
                         }
-                        // economias sem lançamento: só o aviso (manipulação no Horizonte)
-                        if (openingKind === "economias" && categoryItems.length === 0) {
+                        // poupança: sempre só reflexo (manipulação no Horizonte)
+                        if (openingKind === "economias") {
                           setWindowKind("economias");
                           setEditTarget(null);
-                          setActiveItemKey(null);
+                          setActiveItemKey(
+                            categoryItems.find((item) => item.horizonTransfer)?.key ?? null,
+                          );
                           setFormOrigin("standard");
                           setWindowMode("info");
                           setAdding(true);
@@ -1583,6 +1587,8 @@ function Index() {
                   },
                 ]
             : undefined;
+          const horizonAddWindow =
+            windowMode === "add" && windowKind === "economias" && formOrigin === "horizon";
           return (
           <AddWindow
             title={
@@ -1597,10 +1603,26 @@ function Index() {
                           (windowKind === "saldos" ? "saldos" : "diários"))
                       : "detalhes"
             }
-            subtitle={new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
-              "pt-BR",
-              { day: "2-digit", month: "long", year: "numeric" },
-            )}
+            subtitle={
+              horizonAddWindow
+                ? undefined
+                : new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
+                    "pt-BR",
+                    { day: "2-digit", month: "long", year: "numeric" },
+                  )
+            }
+            dateHero={
+              horizonAddWindow
+                ? {
+                    day: String(formDateParts.d).padStart(2, "0"),
+                    month: new Date(formDateParts.y, formDateParts.m, 1).toLocaleDateString(
+                      "pt-BR",
+                      { month: "long" },
+                    ),
+                    year: String(formDateParts.y),
+                  }
+                : undefined
+            }
             deleteActions={windowMode === "detail" ? detailDeleteActions : undefined}
             onClose={closeWindow}
           >
@@ -1645,6 +1667,17 @@ function Index() {
                   )}
                   .
                 </p>
+                {windowKind === "economias" && activeItem?.horizonTransfer && (
+                  <button
+                    type="button"
+                    onClick={() => jumpToHorizon(activeItem)}
+                    aria-label="Ir para este dia no Horizonte"
+                    className="mt-3 inline-flex h-8 items-center gap-1 rounded-lg border border-primary/40 bg-primary/15 px-3 text-sm font-semibold text-primary"
+                  >
+                    ir ao Horizonte
+                    <span aria-hidden>›</span>
+                  </button>
+                )}
               </div>
             )}
 
