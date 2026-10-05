@@ -1801,21 +1801,21 @@ function Index() {
                   <div className="space-y-1.5">
                     <span className="text-xs font-medium text-muted-foreground">parcelas</span>
                     <div className="flex items-center gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setInfinite((v) => !v)}
+                        className={`min-w-0 flex-1 ${chip(infinite)}`}
+                      >
+                        sem fim
+                      </button>
                       <input
                         inputMode="numeric"
                         disabled={infinite}
                         value={infinite ? "" : installments}
                         onChange={(ev) => setInstallments(ev.target.value)}
                         placeholder="12"
-                        className="h-10 w-full rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
+                        className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
                       />
-                      <button
-                        type="button"
-                        onClick={() => setInfinite((v) => !v)}
-                        className={chip(infinite)}
-                      >
-                        sem fim
-                      </button>
                     </div>
                   </div>
                 )}
