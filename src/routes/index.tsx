@@ -1803,11 +1803,19 @@ function Index() {
                     <div className="flex items-center gap-2">
                       <input
                         inputMode="numeric"
-                        disabled={infinite}
                         value={infinite ? "" : installments}
-                        onChange={(ev) => setInstallments(ev.target.value)}
+                        onFocus={() => {
+                          if (infinite) {
+                            setInfinite(false);
+                            setInstallments("");
+                          }
+                        }}
+                        onChange={(ev) => {
+                          setInfinite(false);
+                          setInstallments(ev.target.value.replace(/\D/g, ""));
+                        }}
                         placeholder="12"
-                        className="h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 disabled:opacity-50"
+                        className={`h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 ${infinite ? "opacity-50" : ""}`}
                       />
                       <button
                         type="button"
