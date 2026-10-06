@@ -8,3 +8,5 @@
 > Commits you push to the connected branch sync back to Lovable and show up in
 > the editor, so keep the branch in a working state.
 <!-- LOVABLE:END -->
+
+- Use `dailyBudgetAmount` for daily forecast values in Menu, Totais, and calendar occurrences so all views share the same month-aware, downward-to-cents rounding.

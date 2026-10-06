@@ -3,7 +3,8 @@ type Kind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
 export type TotalsData = {
   totals: Record<Kind, number>;
   diaryDays: number;
-  remainingDays: number;
+  daysInMonth: number;
+  forecastPerDay: number;
   savedTotal: number;
 };
 
@@ -62,14 +63,13 @@ function Card({
 }
 
 export function TotalsBoard({ data }: { data: TotalsData }) {
-  const { totals, diaryDays, remainingDays, savedTotal } = data;
+  const { totals, diaryDays, daysInMonth, forecastPerDay } = data;
 
   const custoVida = totals.saidas + totals.diarios + totals.cartao;
   // performance = saldo final do mês (igual ao resumo do calendário): desconta também a poupança
   const performance = totals.entradas - custoVida - totals.economias;
   const economizado = totals.entradas > 0 ? (totals.economias / totals.entradas) * 100 : 0;
   const diarioMedio = diaryDays > 0 ? totals.diarios / diaryDays : 0;
-  const previsao = diarioMedio * remainingDays;
 
   return (
     <section className="mx-auto w-full max-w-3xl space-y-6">
@@ -104,7 +104,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
               </>
             }
             value={brl(totals.economias)}
-            hint={`${economizado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% das entradas · total poupado: ${brl(savedTotal)}`}
+            hint={`poupando ${Math.round(economizado).toLocaleString("pt-BR")}% do seu salário`}
           />
           <Card
             title="custo de vida"
@@ -153,12 +153,12 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
         <p className="mb-3 text-sm text-muted-foreground">previsão de diários do mês</p>
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-card px-4 py-4">
           <Dot k="diarios" />
-          <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
+          <span className="min-w-0 flex-1 text-sm font-medium text-foreground">
             previsão de diário{" "}
-            <span className="text-muted-foreground">x {remainingDays}</span>
+            <span className="text-muted-foreground">× {daysInMonth} dias</span>
           </span>
           <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-            {brl(previsao)}
+            {brl(forecastPerDay)}
           </span>
         </div>
       </div>

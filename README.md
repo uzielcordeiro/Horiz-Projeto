@@ -1,4 +1,4 @@
-# The Grand Horizon
+# Horizon Parent Project
 
 https://github.com/uzielcordeiro/Horiz-Projeto-Pai-De-Todos
 
@@ -6,7 +6,7 @@ This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/8f780bcf-13f3-4636-a81c-920ece243eb6).
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/92d08016-2268-4f2b-ac8f-d230cf3b437c).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.

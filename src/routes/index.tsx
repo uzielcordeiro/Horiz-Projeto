@@ -12,6 +12,7 @@ import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecas
 
 import {
   WEEKDAYS,
+  dailyBudgetAmount,
   occurrencesInMonth,
   sumBefore,
   type Occurrence,
@@ -58,6 +59,7 @@ const STORAGE_KEY = "timeline-entries-v1";
 const REC_KEY = "timeline-recurrences-v1";
 const FORECAST_KEY = "timeline-forecast-v1";
 const FORECAST_DIVISOR_KEY = "timeline-forecast-divisor-v1";
+const TAGS_KEY = "timeline-tags-v1";
 const FORECAST_ID = "forecast-auto";
 
 const KINDS: { key: Kind; title: string; sign: 1 | -1 | 0 }[] = [
@@ -183,6 +185,10 @@ function Index() {
   const [forecastItems, setForecastItems] = useState<ForecastItem[]>([]);
   const [forecastDivisor, setForecastDivisor] = useState(30);
 
+  // mapa de tags: independente dos lançamentos (renomear/apagar não mexe em valores)
+  const [customTags, setCustomTags] = useState<string[]>([]);
+  const [deletedTags, setDeletedTags] = useState<string[]>([]);
+
   const [kind, setKind] = useState<Kind>("entradas");
   const [windowKind, setWindowKind] = useState<Kind | "saldos">("entradas");
   const [amount, setAmount] = useState("");
@@ -262,6 +268,12 @@ function Index() {
         const d = Number(rawDivisor);
         if (Number.isFinite(d) && d > 0) setForecastDivisor(d);
       }
+      const rawTags = localStorage.getItem(TAGS_KEY);
+      if (rawTags) {
+        const parsed = JSON.parse(rawTags) as { custom?: string[]; deleted?: string[] };
+        setCustomTags(parsed.custom ?? []);
+        setDeletedTags(parsed.deleted ?? []);
+      }
     } catch {
       /* ignore */
     }
@@ -274,7 +286,8 @@ function Index() {
     localStorage.setItem(REC_KEY, JSON.stringify(recurrences));
     localStorage.setItem(FORECAST_KEY, JSON.stringify(forecastItems));
     localStorage.setItem(FORECAST_DIVISOR_KEY, String(forecastDivisor));
-  }, [entries, recurrences, forecastItems, forecastDivisor, loaded]);
+    localStorage.setItem(TAGS_KEY, JSON.stringify({ custom: customTags, deleted: deletedTags }));
+  }, [entries, recurrences, forecastItems, forecastDivisor, customTags, deletedTags, loaded]);
 
   // sincroniza a previsão gasto diário como saída diária automática no calendário
   useEffect(() => {
@@ -410,11 +423,18 @@ function Index() {
     return t;
   }, [rows]);
 
-  /** dados da aba totais: dias com diários lançados e dias restantes do mês */
+  /** Dados da aba totais: previsão do Menu por dia, para o mês selecionado. */
   const totalsData = useMemo(() => {
     const diaryDays = rows.list.filter((r) => r.totals.diarios > 0).length;
-    const sameMonth = cursor.y === today.getFullYear() && cursor.m === today.getMonth();
-    const remainingDays = sameMonth ? daysInMonth - today.getDate() + 1 : daysInMonth;
+    const monthlyBudget = forecastItems.reduce(
+      (sum, item) => sum + (item.period === "semanal" ? 0 : item.amount),
+      0,
+    );
+    const weeklyBudget = forecastItems.reduce(
+      (sum, item) => sum + (item.period === "semanal" ? item.amount : 0),
+      0,
+    );
+    const forecastPerDay = dailyBudgetAmount(monthlyBudget, weeklyBudget, cursor.y, cursor.m);
     const nextMonth = iso(cursor.y, cursor.m + 1, 1);
     const savedTotal =
       entries
@@ -423,8 +443,8 @@ function Index() {
       recurrences
         .filter((recurrence) => recurrence.kind === "economias")
         .reduce((sum, recurrence) => sum + sumBefore(recurrence, nextMonth), 0);
-    return { totals: monthTotals, diaryDays, remainingDays, savedTotal };
-  }, [rows, monthTotals, cursor, daysInMonth, entries, recurrences]);
+    return { totals: monthTotals, diaryDays, daysInMonth, forecastPerDay, savedTotal };
+  }, [rows, monthTotals, cursor, daysInMonth, entries, recurrences, forecastItems]);
 
   /** tags do mês com total somado */
   const tagRows = useMemo<TagRow[]>(() => {
@@ -443,8 +463,31 @@ function Index() {
     for (const r of recurrences) {
       for (const o of occurrencesInMonth(r, cursor.y, cursor.m)) push(o.tags, o.amount);
     }
-    return Array.from(map, ([tag, v]) => ({ tag, total: v.total, count: v.count }));
-  }, [entries, recurrences, cursor, daysInMonth]);
+    const derived = Array.from(map, ([tag, v]) => ({ tag, total: v.total, count: v.count }));
+    const visible = derived.filter((r) => !deletedTags.includes(r.tag));
+    const known = new Set(visible.map((r) => r.tag.toLowerCase()));
+    const extras = customTags
+      .filter((t) => !known.has(t.toLowerCase()))
+      .map((t) => ({ tag: t, total: 0, count: 0 }));
+    return [...visible, ...extras];
+  }, [entries, recurrences, cursor, daysInMonth, customTags, deletedTags]);
+
+  /** Renomeia uma tag só no mapa: lançamentos e valores não mudam. */
+  function renameTag(oldTag: string, newTag: string) {
+    setDeletedTags((prev) => (prev.includes(oldTag) ? prev : [...prev, oldTag]));
+    setCustomTags((prev) => {
+      const withoutOld = prev.filter((t) => t !== oldTag);
+      return withoutOld.some((t) => t.toLowerCase() === newTag.toLowerCase())
+        ? withoutOld
+        : [...withoutOld, newTag];
+    });
+  }
+
+  /** Apaga uma tag do mapa: lançamentos e valores não mudam. */
+  function deleteTag(tag: string) {
+    setCustomTags((prev) => prev.filter((t) => t !== tag));
+    setDeletedTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
+  }
 
 
   const horizonMonths = useMemo<HorizonMonth[]>(() => {
@@ -1280,6 +1323,8 @@ function Index() {
         ) : view === "tags" && !adding ? (
           <TagsBoard
             rows={tagRows}
+            onRename={renameTag}
+            onDelete={deleteTag}
             onAdd={() => {
               resetForm();
               setError(null);

@@ -15,3 +15,6 @@
 - [x] Calendário: Saldos só leitura, com caixa "use as outras colunas"
 - [x] Repetição (todas as categorias): campo de parcelas à esquerda e "sem fim" à direita, com larguras iguais
 - [x] Redesenhar cabeçalho da janela de adicionar (opção 4)
+
+- [x] Totais > poupança: texto vira só "poupando N% do seu salário", com N inteiro e variando por mês/ano
+- [x] Menu > previsão gasto diário: apagar só os dois textos pequenos ("neste mês…" e "esse valor entra automaticamente…"), mantendo gastos, total mensal, dividido por e previsão por dia

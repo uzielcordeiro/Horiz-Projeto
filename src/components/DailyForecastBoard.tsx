@@ -49,7 +49,6 @@ export function DailyForecastBoard({
   const weekly = items.reduce((s, i) => s + (i.period === "semanal" ? i.amount : 0), 0);
   const divisor = new Date(year, month + 1, 0).getDate();
   const perDay = items.length > 0 ? dailyBudgetAmount(monthly, weekly, year, month) : 0;
-  const monthTotal = Math.round(perDay * divisor * 100) / 100;
 
   function openForm(item?: ForecastItem) {
     setEditing(item ?? null);
@@ -182,15 +181,6 @@ export function DailyForecastBoard({
             {brl(perDay)}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">
-          neste mês: {brl(perDay)} × {divisor} dias = {brl(monthTotal)}. arredondado sempre para
-          baixo — nunca passa do total previsto.
-        </p>
-        <p className="border-t border-border pt-3 text-xs text-muted-foreground">
-          esse valor entra automaticamente como saída diária no calendário, em todos os meses a
-          partir do mês atual. editar ou apagar aqui atualiza o calendário — e apagar a saída
-          “previsão gasto diário” no calendário limpa esta lista.
-        </p>
       </div>
 
       {open && (
