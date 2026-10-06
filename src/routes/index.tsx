@@ -1117,7 +1117,7 @@ function Index() {
               <button onClick={() => shiftMonth(-1)} aria-label="Mês anterior" className={navBtn}>
                 ‹
               </button>
-              <span className="min-w-44 rounded-full border border-border px-4 py-1.5 text-center text-sm font-medium capitalize text-foreground">
+              <span className="min-w-44 rounded-full border-[1.5px] border-foreground/30 px-4 py-1.5 text-center text-sm font-medium capitalize text-foreground">
                 {monthLabel(cursor.y, cursor.m)}
               </span>
               <button onClick={() => shiftMonth(1)} aria-label="Próximo mês" className={navBtn}>

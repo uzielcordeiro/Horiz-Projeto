@@ -17,12 +17,12 @@ const badge: Record<Kind, string> = {
   cartao: "bg-chart-1 text-primary-foreground",
 };
 
-const LIST: { key: Kind; title: string }[] = [
-  { key: "entradas", title: "entradas" },
-  { key: "saidas", title: "saídas" },
-  { key: "diarios", title: "diários" },
-  { key: "economias", title: "poupança" },
-  { key: "cartao", title: "gastos com cartão" },
+const LIST: { key: Kind; title: string; letter: string }[] = [
+  { key: "entradas", title: "entradas", letter: "E" },
+  { key: "saidas", title: "saídas", letter: "S" },
+  { key: "diarios", title: "diários", letter: "D" },
+  { key: "economias", title: "poupança", letter: "P" },
+  { key: "cartao", title: "gastos com cartão", letter: "C" },
 ];
 
 function Dot({ k }: { k: Kind }) {
@@ -31,7 +31,7 @@ function Dot({ k }: { k: Kind }) {
       aria-hidden
       className={`grid size-5 shrink-0 place-items-center rounded-full text-[10px] font-bold ${badge[k]}`}
     >
-      {LIST.find((l) => l.key === k)!.title.charAt(0).toUpperCase()}
+      {LIST.find((l) => l.key === k)!.letter}
     </span>
   );
 }
