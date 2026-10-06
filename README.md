@@ -1,12 +1,12 @@
-# Horizon Project Suite
+# Parent Project Hub
 
-https://github.com/uzielcordeiro/Horiz-Projeto
+https://github.com/uzielcordeiro/Horiz-Projeto-Pai-De-Todos
 
 This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/1ab1536b-bff0-463c-9561-f3ba4f5741c8).
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/89fbf6f5-a8da-4ff4-90a8-7232bc4797c5).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
@@ -22,7 +22,3 @@ cd <repository-name>
 npm i
 npm run dev
 ```
-
----
-
-> Projeto recriado e mantido com Lovable. Ultima atualizacao: outubro de 2026.

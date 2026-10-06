@@ -1,3 +1,4 @@
+import { formatMoneyInput } from "@/lib/money-input";
 import { useMemo, useState } from "react";
 import { AddWindow } from "@/components/AddWindow";
 
@@ -50,7 +51,7 @@ export function DailyForecastBoard({
   function openForm(item?: ForecastItem) {
     setEditing(item ?? null);
     setName(item?.name ?? "");
-    setAmount(item ? String(item.amount).replace(".", ",") : "");
+    setAmount(item ? item.amount.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : "");
     setPeriod(item?.period ?? "mensal");
     setTags(item?.tags ?? []);
     setTagInput("");
@@ -214,7 +215,7 @@ export function DailyForecastBoard({
               <span className="text-xs text-muted-foreground">valor</span>
               <input
                 value={amount}
-                onChange={(e) => setAmount(e.target.value.replace(/[^\d.,]/g, ""))}
+                onChange={(e) => setAmount(formatMoneyInput(e.target.value))}
                 inputMode="decimal"
                 placeholder="450,00"
                 className={field}

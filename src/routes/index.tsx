@@ -1,3 +1,4 @@
+import { formatMoneyInput } from "@/lib/money-input";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useRef, useState } from "react";
 
@@ -72,7 +73,7 @@ const SUGGESTIONS: Record<Kind, string[]> = {
   entradas: ["Salário", "Freela", "Diária", "Trabalho extra", "Outro"],
   saidas: ["Aluguel", "Água", "Luz", "Internet", "Mercado", "Combustível", "Outro"],
   diarios: ["Alimentação", "Transporte", "Lazer", "Outro"],
-  economias: ["Reserva", "Investimento", "Meta", "Outro"],
+  economias: ["Poupança", "Reserva", "Investimento", "Meta"],
   cartao: ["Fatura", "Parcela", "Compra", "Outro"],
 };
 
@@ -133,7 +134,7 @@ function parseAmount(input: string) {
 }
 
 // campo de valor: aceita apenas números, vírgula e ponto
-const sanitizeAmountInput = (v: string) => v.replace(/[^\d.,]/g, "");
+const sanitizeAmountInput = formatMoneyInput;
 
 const balanceSign = (kind: Kind, horizonTransfer?: boolean): 1 | -1 | 0 => {
   if (kind === "economias" && horizonTransfer) return -1;
@@ -142,7 +143,7 @@ const balanceSign = (kind: Kind, horizonTransfer?: boolean): 1 | -1 | 0 => {
 
 const signedTotal = (list: Entry[]) =>
   list.reduce((sum, e) => {
-    const sign = KINDS.find((item) => item.key === e.kind)?.sign ?? 0;
+    const sign = balanceSign(e.kind, e.horizonTransfer);
     return sum + sign * e.amount;
   }, 0);
 
@@ -329,7 +330,7 @@ function Index() {
     const opening =
       signedTotal(sorted.filter((e) => e.date < openingDate)) +
       recurrences.reduce((s, r) => {
-        const sign = KINDS.find((item) => item.key === r.kind)?.sign ?? 0;
+        const sign = balanceSign(r.kind as Kind, r.horizonTransfer);
         return s + sign * sumBefore(r, openingDate);
       }, 0);
 
@@ -357,7 +358,7 @@ function Index() {
             key: e.id,
             kind: e.kind,
             title: k.title,
-            sign: k.sign,
+            sign: balanceSign(e.kind, e.horizonTransfer),
             amount: e.amount,
             detail: e.label,
             entryId: e.id,
@@ -371,7 +372,7 @@ function Index() {
             key: `${o.recurrenceId}-${o.date}`,
             kind: k.key,
             title: k.title,
-            sign: k.sign,
+            sign: balanceSign(k.key, o.horizonTransfer),
             amount: o.amount,
             detail: `${o.name || o.label}${
               o.total ? ` · ${o.index}/${o.total}` : " · recorrente"
