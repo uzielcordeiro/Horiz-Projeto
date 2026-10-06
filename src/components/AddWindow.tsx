@@ -90,32 +90,32 @@ export function AddWindow({
         className="relative flex max-h-[85vh] w-[92vw] max-w-[360px] flex-col overflow-hidden rounded-3xl border border-border bg-secondary/70 shadow-2xl"
       >
         <div className="grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-2 px-5 pt-5 pb-3">
-          <div className="min-w-0">
-            <h2
-              className={`truncate font-display text-foreground ${
-                dateHero ? "text-[26px] font-extrabold tracking-tight" : "text-2xl font-bold"
-              }`}
-            >
-              {title}
-            </h2>
-            {dateHero ? (
-              <div className="mt-3 flex items-center gap-3">
-                <div className="grid size-14 shrink-0 place-items-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/25">
-                  <span className="font-display text-2xl font-extrabold leading-none tabular-nums">
-                    {dateHero.day}
-                  </span>
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="min-w-0 flex-1">
+              <h2
+                className={`truncate font-display text-foreground ${
+                  dateHero ? "text-xl font-extrabold tracking-tight" : "text-2xl font-bold"
+                }`}
+              >
+                {title}
+              </h2>
+              {dateHero ? (
+                <p className="mt-0.5 truncate text-xs font-bold uppercase tracking-[0.12em] text-muted-foreground">
+                  {dateHero.month} {dateHero.year}
+                </p>
+              ) : (
+                subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
+              )}
+            </div>
+            {dateHero && (
+              <div className="w-11 shrink-0 overflow-hidden rounded-xl border border-border bg-card text-center shadow-sm">
+                <div className="bg-negative py-0.5 text-[9px] font-bold uppercase tracking-wide text-negative-foreground">
+                  {dateHero.month.slice(0, 3)}
                 </div>
-                <div className="flex flex-col leading-tight">
-                  <span className="text-sm font-extrabold uppercase tracking-wide text-foreground">
-                    {dateHero.month}
-                  </span>
-                  <span className="whitespace-nowrap text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                    {dateHero.year}
-                  </span>
+                <div className="pb-1 pt-0.5 font-display text-xl font-extrabold leading-none text-foreground tabular-nums">
+                  {dateHero.day}
                 </div>
               </div>
-            ) : (
-              subtitle && <p className="truncate text-xs text-muted-foreground">{subtitle}</p>
             )}
           </div>
           {hasDelete && (

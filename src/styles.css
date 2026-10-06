@@ -181,7 +181,7 @@
   --warning-foreground: oklch(0.28 0.06 85);
   --negative: oklch(0.6 0.2 25);
   --negative-foreground: oklch(0.99 0.01 25);
-  --horizon-marker: oklch(0.59 0.21 257);
+  --horizon-marker: oklch(0.6 0.13 25);
 }
 
 @layer base {

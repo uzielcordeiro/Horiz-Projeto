@@ -1063,7 +1063,7 @@ function Index() {
 
 
   const navBtn =
-    "grid size-9 shrink-0 place-items-center rounded-full border border-border text-foreground transition-colors hover:bg-accent";
+    "grid size-9 shrink-0 place-items-center rounded-full border-[1.5px] border-foreground/30 text-lg font-bold leading-none text-foreground transition-colors hover:bg-accent";
 
   return (
     <div className="flex min-h-screen bg-background">
@@ -1128,7 +1128,7 @@ function Index() {
               </button>
               <button
                 onClick={goToday}
-                className="ml-1 h-9 rounded-full border border-border px-3 text-xs font-semibold text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                className="ml-1 h-9 rounded-full border-[1.5px] border-foreground/30 px-3 text-xs font-bold text-foreground transition-colors hover:bg-accent"
               >
                 hoje
               </button>
@@ -1588,7 +1588,11 @@ function Index() {
                 ]
             : undefined;
           const horizonAddWindow =
-            windowMode === "add" && windowKind === "economias" && formOrigin === "horizon";
+            windowMode === "add" &&
+            ((windowKind === "economias" && formOrigin === "horizon") ||
+              windowKind === "entradas" ||
+              windowKind === "saidas" ||
+              windowKind === "cartao");
           return (
           <AddWindow
             title={

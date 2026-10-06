@@ -1,4 +1,4 @@
-# Horizon Project
+# Horizon Project Hub
 
 https://github.com/uzielcordeiro/Horiz-Projeto
 
@@ -6,7 +6,7 @@ This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/df039bbd-714d-4392-80f9-49c24085e471).
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/2436be91-0264-411e-b99e-4acc548bee65).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
