@@ -279,14 +279,13 @@ function Index() {
   // sincroniza a previsão gasto diário como saída diária automática no calendário
   useEffect(() => {
     if (!loaded) return;
-    const monthly = forecastItems.reduce(
-      (s, i) => s + (i.period === "semanal" ? i.amount * (30 / 7) : i.amount),
-      0,
-    );
-    const perDay =
-      forecastItems.length > 0 && forecastDivisor > 0
-        ? Math.round((monthly / forecastDivisor) * 100) / 100
-        : 0;
+    const monthlyBudget = forecastItems
+      .filter((i) => i.period !== "semanal")
+      .reduce((s, i) => s + i.amount, 0);
+    const weeklyBudget = forecastItems
+      .filter((i) => i.period === "semanal")
+      .reduce((s, i) => s + i.amount, 0);
+    const perDay = forecastItems.length > 0 ? monthlyBudget + weeklyBudget : 0;
 
     setRecurrences((prev) => {
       const existing = prev.find((r) => r.id === FORECAST_ID);
@@ -301,7 +300,9 @@ function Index() {
               name: "previsão gasto diário",
               label: "gasto diário",
               tags: ["previsão"],
-              amount: perDay,
+              amount: 0,
+              monthlyBudget,
+              weeklyBudget,
               freq: "daily",
               daysOfMonth: [],
               daysOfWeek: [],
@@ -312,15 +313,20 @@ function Index() {
             } satisfies Recurrence,
           ];
         }
-        if (Math.abs(existing.amount - perDay) < 0.001 && existing.kind === "diarios") return prev;
+        if (
+          existing.monthlyBudget === monthlyBudget &&
+          existing.weeklyBudget === weeklyBudget &&
+          existing.kind === "diarios"
+        )
+          return prev;
         return prev.map((r) =>
-          r.id === FORECAST_ID ? { ...r, amount: perDay, kind: "diarios" } : r,
+          r.id === FORECAST_ID ? { ...r, monthlyBudget, weeklyBudget, kind: "diarios" } : r,
         );
       }
       return existing ? prev.filter((r) => r.id !== FORECAST_ID) : prev;
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [forecastItems, forecastDivisor, loaded]);
+  }, [forecastItems, loaded]);
 
   const daysInMonth = new Date(cursor.y, cursor.m + 1, 0).getDate();
 
@@ -1260,8 +1266,8 @@ function Index() {
         ) : (view === "diario" || view === "menu") && !adding ? (
           <DailyForecastBoard
             items={forecastItems}
-            divisor={forecastDivisor}
-            onDivisorChange={setForecastDivisor}
+            year={today.getFullYear()}
+            month={today.getMonth()}
             onSave={(item) =>
               setForecastItems((prev) => {
                 const exists = prev.some((p) => p.id === item.id);

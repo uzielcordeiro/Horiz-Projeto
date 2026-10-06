@@ -1,4 +1,5 @@
 import { formatMoneyInput } from "@/lib/money-input";
+import { dailyBudgetAmount } from "@/lib/recurrence";
 import { useMemo, useState } from "react";
 import { AddWindow } from "@/components/AddWindow";
 
@@ -12,19 +13,18 @@ export type ForecastItem = {
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const DIVISORS = [7, 15, 28, 30, 31];
 
 export function DailyForecastBoard({
   items,
-  divisor,
-  onDivisorChange,
+  year,
+  month,
   onSave,
   onDelete,
   onBack,
 }: {
   items: ForecastItem[];
-  divisor: number;
-  onDivisorChange: (d: number) => void;
+  year: number;
+  month: number;
   onSave: (item: ForecastItem) => void;
   onDelete: (id: string) => void;
   onBack: () => void;
@@ -41,12 +41,15 @@ export function DailyForecastBoard({
   const monthly = useMemo(
     () =>
       items.reduce(
-        (s, i) => s + (i.period === "semanal" ? i.amount * (30 / 7) : i.amount),
+        (s, i) => s + (i.period === "semanal" ? 0 : i.amount),
         0,
       ),
     [items],
   );
-  const perDay = divisor > 0 ? monthly / divisor : 0;
+  const weekly = items.reduce((s, i) => s + (i.period === "semanal" ? i.amount : 0), 0);
+  const divisor = new Date(year, month + 1, 0).getDate();
+  const perDay = items.length > 0 ? dailyBudgetAmount(monthly, weekly, year, month) : 0;
+  const monthTotal = Math.round(perDay * divisor * 100) / 100;
 
   function openForm(item?: ForecastItem) {
     setEditing(item ?? null);
@@ -160,24 +163,16 @@ export function DailyForecastBoard({
             total mensal
           </span>
           <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-            {brl(monthly)}
+            {brl(monthly + (weekly * divisor) / 7)}
           </span>
         </div>
         <div className="flex items-center gap-3 border-t border-border pt-3">
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
             dividido por
           </span>
-          <select
-            value={divisor}
-            onChange={(e) => onDivisorChange(Number(e.target.value))}
-            className="h-9 shrink-0 rounded-full border border-border bg-background px-3 text-sm text-foreground outline-none focus:border-ring"
-          >
-            {DIVISORS.map((d) => (
-              <option key={d} value={d}>
-                {d} dias
-              </option>
-            ))}
-          </select>
+          <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+            {divisor} dias (dias do mês)
+          </span>
         </div>
         <div className="flex items-center gap-3 border-t border-border pt-3">
           <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
@@ -187,6 +182,10 @@ export function DailyForecastBoard({
             {brl(perDay)}
           </span>
         </div>
+        <p className="text-xs text-muted-foreground">
+          neste mês: {brl(perDay)} × {divisor} dias = {brl(monthTotal)}. arredondado sempre para
+          baixo — nunca passa do total previsto.
+        </p>
         <p className="border-t border-border pt-3 text-xs text-muted-foreground">
           esse valor entra automaticamente como saída diária no calendário, em todos os meses a
           partir do mês atual. editar ou apagar aqui atualiza o calendário — e apagar a saída
@@ -242,7 +241,7 @@ export function DailyForecastBoard({
               </div>
               {period === "semanal" && (
                 <p className="text-xs text-muted-foreground">
-                  no total mensal contamos ~4,3 semanas.
+                  itens semanais entram como valor ÷ 7 por dia.
                 </p>
               )}
             </div>

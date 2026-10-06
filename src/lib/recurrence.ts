@@ -16,6 +16,10 @@ export type Recurrence = {
   skipped: string[];
   /** Economias criadas pelo Horizonte funcionam como transferência do saldo. */
   horizonTransfer?: boolean;
+  /** Previsão de gasto diário: total mensal (itens mensais) dividido pelos dias de cada mês. */
+  monthlyBudget?: number;
+  /** Previsão de gasto diário: soma dos itens semanais (vira valor/7 por dia). */
+  weeklyBudget?: number;
 };
 
 export type Occurrence = {
@@ -41,6 +45,21 @@ function parseIso(s: string) {
   return { y: parts[0] ?? 1970, m: (parts[1] ?? 1) - 1, d: parts[2] ?? 1 };
 }
 
+/** Valor por dia de uma previsão: divide pelos dias do mês e arredonda SEMPRE para baixo (centavos). */
+export function dailyBudgetAmount(monthly: number, weekly: number, y: number, m: number): number {
+  const days = lastDay(y, m);
+  const monthlyCents = Math.round(monthly * 100);
+  const weeklyCents = Math.round(weekly * 100);
+  // em centavos inteiros para não haver erro de arredondamento
+  return Math.floor((monthlyCents * 7 + weeklyCents * days) / (days * 7)) / 100;
+}
+
+const amountOn = (rec: Recurrence, date: string) => {
+  if (rec.monthlyBudget == null && rec.weeklyBudget == null) return rec.amount;
+  const { y, m } = parseIso(date);
+  return dailyBudgetAmount(rec.monthlyBudget ?? 0, rec.weeklyBudget ?? 0, y, m);
+};
+
 const MAX_OCCURRENCES = 6000;
 
 /** All occurrences from startDate up to and including untilDate (ISO). */
@@ -61,7 +80,7 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
         recurrenceId: rec.id,
         kind: rec.kind,
         date,
-        amount: rec.amount,
+        amount: amountOn(rec, date),
         name: rec.name,
         label: rec.label,
         tags: rec.tags ?? [],

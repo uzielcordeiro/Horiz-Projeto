@@ -65,8 +65,8 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
   const { totals, diaryDays, remainingDays, savedTotal } = data;
 
   const custoVida = totals.saidas + totals.diarios + totals.cartao;
-  // economias é independente: não entra na performance
-  const performance = totals.entradas - custoVida;
+  // performance = saldo final do mês (igual ao resumo do calendário): desconta também a poupança
+  const performance = totals.entradas - custoVida - totals.economias;
   const economizado = totals.entradas > 0 ? (totals.economias / totals.entradas) * 100 : 0;
   const diarioMedio = diaryDays > 0 ? totals.diarios / diaryDays : 0;
   const previsao = diarioMedio * remainingDays;
@@ -81,7 +81,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
             formula={
               <>
                 <Dot k="entradas" />－<Dot k="saidas" />－<Dot k="diarios" />－
-                <Dot k="cartao" />
+                <Dot k="cartao" />－<Dot k="economias" />
               </>
             }
             value={brl(performance)}
@@ -103,8 +103,8 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
                 <Dot k="entradas" />
               </>
             }
-            value={`${economizado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}%`}
-            hint={`total poupado: ${brl(savedTotal)}`}
+            value={brl(totals.economias)}
+            hint={`${economizado.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}% das entradas · total poupado: ${brl(savedTotal)}`}
           />
           <Card
             title="custo de vida"
