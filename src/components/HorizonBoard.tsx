@@ -1,3 +1,4 @@
+import { FitMoney } from "@/components/FitMoney";
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
 type Status = "surplus" | "positive" | "warning" | "negative";
@@ -23,16 +24,6 @@ const cell: Record<Status, string> = {
   negative: "bg-negative/20 text-negative",
 };
 
-const compact = (v: number) => {
-  const abs = Math.abs(v);
-  const sign = v < 0 ? "-" : "";
-  if (abs >= 1000)
-    return `${sign}${(abs / 1000).toLocaleString("pt-BR", {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}K`;
-  return `${sign}${abs.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`;
-};
 
 type Props = {
   months: HorizonMonth[];
@@ -192,7 +183,7 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso, hi
                           {d.day}
                         </span>
                         <span className="pr-2 text-right font-semibold tabular-nums">
-                          {compact(d.balance)}
+                          <FitMoney value={d.balance} symbol={false} />
                         </span>
                       </button>
                     );

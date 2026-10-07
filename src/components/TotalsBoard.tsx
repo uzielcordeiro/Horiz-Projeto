@@ -1,3 +1,5 @@
+import type React from "react";
+import { FitMoney } from "@/components/FitMoney";
 type Kind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
 
 export type TotalsData = {
@@ -46,7 +48,7 @@ function Card({
 }: {
   title: string;
   formula: React.ReactNode;
-  value: string;
+  value: React.ReactNode;
   hint: string;
   tone?: string;
 }) {
@@ -84,7 +86,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
                 <Dot k="cartao" />－<Dot k="economias" />
               </>
             }
-            value={brl(performance)}
+            value=<FitMoney value={performance} />
             hint={performance === 0 ? "zerado" : performance > 0 ? "sobrando" : "no vermelho"}
             tone={
               performance === 0
@@ -103,7 +105,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
                 <Dot k="entradas" />
               </>
             }
-            value={brl(totals.economias)}
+            value=<FitMoney value={totals.economias} />
             hint={`poupando ${Math.round(economizado).toLocaleString("pt-BR")}% do seu salário`}
           />
           <Card
@@ -113,7 +115,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
                 <Dot k="saidas" />＋<Dot k="diarios" />＋<Dot k="cartao" />
               </>
             }
-            value={brl(custoVida)}
+            value=<FitMoney value={custoVida} />
             hint={custoVida === 0 ? "zerado" : "somatório dos gastos do mês"}
           />
           <Card
@@ -124,7 +126,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
                 <span>/ {diaryDays || 0}</span>
               </>
             }
-            value={brl(diarioMedio)}
+            value=<FitMoney value={diarioMedio} />
             hint={`diários lançados: ${brl(totals.diarios)}`}
           />
         </div>
@@ -141,7 +143,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
                   {l.title}
                 </span>
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-                  {brl(totals[l.key])}
+                  <FitMoney value={totals[l.key]} />
                 </span>
               </div>
             ))}
@@ -158,7 +160,7 @@ export function TotalsBoard({ data }: { data: TotalsData }) {
             <span className="text-muted-foreground">× {daysInMonth} dias</span>
           </span>
           <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-            {brl(forecastPerDay)}
+            <FitMoney value={forecastPerDay} />
           </span>
         </div>
       </div>

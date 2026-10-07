@@ -1,3 +1,4 @@
+import { FitMoney } from "@/components/FitMoney";
 import { formatMoneyInput } from "@/lib/money-input";
 import { dailyBudgetAmount } from "@/lib/recurrence";
 import { useMemo, useState } from "react";
@@ -140,7 +141,7 @@ export function DailyForecastBoard({
                   </span>
                 </button>
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-                  {brl(i.amount)}
+                  <FitMoney value={i.amount} />
                 </span>
                 <button
                   type="button"
@@ -162,7 +163,7 @@ export function DailyForecastBoard({
             total mensal
           </span>
           <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-            {brl(monthly + (weekly * divisor) / 7)}
+            <FitMoney value={monthly + (weekly * divisor) / 7} />
           </span>
         </div>
         <div className="flex items-center gap-3 border-t border-border pt-3">
@@ -178,7 +179,7 @@ export function DailyForecastBoard({
             previsão por dia
           </span>
           <span className="shrink-0 font-display text-2xl font-bold tabular-nums text-foreground">
-            {brl(perDay)}
+            <FitMoney value={perDay} />
           </span>
         </div>
       </div>

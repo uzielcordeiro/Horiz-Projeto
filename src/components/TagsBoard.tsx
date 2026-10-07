@@ -1,3 +1,4 @@
+import { FitMoney } from "@/components/FitMoney";
 import { useEffect, useMemo, useState } from "react";
 
 import { AddWindow } from "@/components/AddWindow";
@@ -107,7 +108,7 @@ export function TagsBoard({
                   {r.count} lançamento{r.count === 1 ? "" : "s"}
                 </span>
                 <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-                  {brl(r.total)}
+                  <FitMoney value={r.total} />
                 </span>
               </button>
             ))}

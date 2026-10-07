@@ -1,3 +1,4 @@
+import { FitMoney } from "@/components/FitMoney";
 import { formatMoneyInput } from "@/lib/money-input";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -1394,11 +1395,11 @@ function Index() {
         <section className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">saldo anterior</p>
-            <p className="mt-1 text-lg font-semibold text-foreground">{brl(rows.opening)}</p>
+            <p className="mt-1 text-lg font-semibold text-foreground"><FitMoney value={rows.opening} /></p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">entradas do mês</p>
-            <p className="mt-1 text-lg font-semibold text-positive">{brl(monthTotals.entradas)}</p>
+            <p className="mt-1 text-lg font-semibold text-positive"><FitMoney value={monthTotals.entradas} /></p>
           </div>
           <div className="rounded-2xl border border-border bg-card p-4">
             <p className="text-xs uppercase tracking-wide text-muted-foreground">saldo final</p>
@@ -1408,7 +1409,7 @@ function Index() {
               }`}
             >
               <span className={`size-2.5 rounded-full ${dotClass[closingStatus]}`} />
-              {brl(rows.closing)}
+              <FitMoney value={rows.closing} />
             </p>
           </div>
         </section>
@@ -1462,7 +1463,8 @@ function Index() {
                   {k.title}
                 </span>
               ))}
-              <span className="flex items-center justify-end border-l border-border/70 px-2">
+              <span data-fit
+                        className="flex min-w-0 items-center justify-end overflow-hidden border-l border-border/70 px-2">
                 saldos
               </span>
             </div>
@@ -1570,23 +1572,24 @@ function Index() {
                         <span
                           key={k.key}
                           data-kind={k.key}
-                          className={`flex items-center justify-end truncate border-l border-border/70 px-2 text-sm tabular-nums ${
+                          className={`flex min-w-0 items-center justify-end overflow-hidden border-l border-border/70 px-2 text-sm tabular-nums ${
                             row.totals[k.key] > 0
                               ? `font-medium ${kindTone[k.key]}`
                               : "text-muted-foreground/60"
                           }`}
                         >
-                          {brl(row.totals[k.key])}
+                          <FitMoney value={row.totals[k.key]} />
                         </span>
                       ))}
                       <span
                         data-kind="saldos"
-                        className="flex items-center justify-end border-l border-border/70 px-2"
+                        data-fit
+                        className="flex min-w-0 items-center justify-end overflow-hidden border-l border-border/70 px-2"
                       >
                         <span
-                          className={`rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
+                          className={`min-w-0 rounded-lg px-2.5 py-1 text-right text-sm font-semibold tabular-nums ${saldoCell[s]}`}
                         >
-                          {brl(row.balance)}
+                          <FitMoney value={row.balance} />
                         </span>
                       </span>
                     </button>
@@ -1605,16 +1608,17 @@ function Index() {
               {KINDS.map((k) => (
                 <span
                   key={k.key}
-                  className={`flex items-center justify-end border-l border-border/70 px-2 tabular-nums ${kindTone[k.key]}`}
+                  className={`flex min-w-0 items-center justify-end overflow-hidden border-l border-border/70 px-2 tabular-nums ${kindTone[k.key]}`}
                 >
-                  {brl(monthTotals[k.key])}
+                  <FitMoney value={monthTotals[k.key]} />
                 </span>
               ))}
-              <span className="flex items-center justify-end border-l border-border/70 px-2">
+              <span data-fit
+                        className="flex min-w-0 items-center justify-end overflow-hidden border-l border-border/70 px-2">
                 <span
-                  className={`rounded-lg px-2.5 py-1 text-right tabular-nums ${saldoCell[closingStatus]}`}
+                  className={`min-w-0 rounded-lg px-2.5 py-1 text-right tabular-nums ${saldoCell[closingStatus]}`}
                 >
-                  {brl(rows.closing)}
+                  <FitMoney value={rows.closing} />
                 </span>
               </span>
             </div>
@@ -1743,7 +1747,7 @@ function Index() {
                   >
                     <span className="truncate text-sm font-semibold text-foreground">{item.detail}</span>
                     <span className={`text-sm font-bold tabular-nums ${kindTone[item.kind]}`}>
-                      {brl(item.amount)}
+                      <FitMoney value={item.amount} />
                     </span>
                     <span aria-hidden className="text-muted-foreground">›</span>
                   </button>
@@ -1793,7 +1797,7 @@ function Index() {
                 <div className="rounded-2xl bg-card p-4">
                   <p className="text-xs font-medium text-muted-foreground">valor</p>
                   <p className={`mt-1 font-display text-2xl font-bold tabular-nums ${kindTone[activeItem.kind]}`}>
-                    {brl(activeItem.amount)}
+                    <FitMoney value={activeItem.amount} />
                   </p>
                 </div>
                 {activeItem.kind === "economias" ? (
