@@ -153,7 +153,7 @@ export function TagsBoard({
             </label>
             {error && <p className="text-sm text-negative">{error}</p>}
             <p className="text-xs text-muted-foreground">
-              a tag é só um mapa: renomear ou apagar não mexe em nenhum lançamento.
+              apagar remove a tag de todos os lançamentos; os valores não mudam.
             </p>
             <button
               type="button"
