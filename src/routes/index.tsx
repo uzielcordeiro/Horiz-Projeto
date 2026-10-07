@@ -483,8 +483,13 @@ function Index() {
     });
   }
 
-  /** Apaga uma tag do mapa: lançamentos e valores não mudam. */
+  /** Apaga uma tag do mapa e de todos os lançamentos (valores não mudam). */
   function deleteTag(tag: string) {
+    const strip = <T extends { tags?: string[] }>(x: T): T =>
+      x.tags?.includes(tag) ? { ...x, tags: x.tags.filter((t) => t !== tag) } : x;
+    setEntries((prev) => prev.map(strip));
+    setRecurrences((prev) => prev.map(strip));
+    setTags((prev) => prev.filter((t) => t !== tag));
     setCustomTags((prev) => prev.filter((t) => t !== tag));
     setDeletedTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
   }
