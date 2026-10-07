@@ -1,6 +1,6 @@
 import { formatMoneyInput } from "@/lib/money-input";
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
@@ -38,8 +38,18 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  ssr: false,
+  pendingComponent: LoadingScreen,
   component: Index,
 });
+
+function LoadingScreen() {
+  return (
+    <div className="grid min-h-screen place-items-center bg-background text-sm text-muted-foreground">
+      carregando…
+    </div>
+  );
+}
 
 type Kind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
 
@@ -60,6 +70,7 @@ const REC_KEY = "timeline-recurrences-v1";
 const FORECAST_KEY = "timeline-forecast-v1";
 const FORECAST_DIVISOR_KEY = "timeline-forecast-divisor-v1";
 const TAGS_KEY = "timeline-tags-v1";
+const BACKUP_SUFFIX = "-backup";
 const FORECAST_ID = "forecast-auto";
 
 const KINDS: { key: Kind; title: string; sign: 1 | -1 | 0 }[] = [
@@ -249,31 +260,57 @@ function Index() {
   }
 
 
-  useEffect(() => {
+  useLayoutEffect(() => {
+    // Lê cada parte separadamente; se a principal falhar, tenta a cópia de segurança.
+    // Nunca deixa um defeito numa parte apagar as outras.
+    function readKey<T>(key: string, parse: (raw: string) => T): T | undefined {
+      for (const k of [key, key + BACKUP_SUFFIX]) {
+        try {
+          const raw = localStorage.getItem(k);
+          if (raw == null) continue;
+          return parse(raw);
+        } catch {
+          try {
+            const raw = localStorage.getItem(k);
+            if (raw != null) localStorage.setItem(k + "-corrompido-" + Date.now(), raw);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+      return undefined;
+    }
+    const e = readKey(STORAGE_KEY, (raw) => {
+      const p = JSON.parse(raw) as Entry[];
+      if (!Array.isArray(p)) throw new Error("bad");
+      return p.map((x) => ({ ...x, kind: x.kind ?? "entradas" }));
+    });
+    if (e) setEntries(e);
+    const r = readKey(REC_KEY, (raw) => {
+      const p = JSON.parse(raw) as Recurrence[];
+      if (!Array.isArray(p)) throw new Error("bad");
+      return p.map((x) => ({ ...x, skipped: x.skipped ?? [] }));
+    });
+    if (r) setRecurrences(r);
+    const f = readKey(FORECAST_KEY, (raw) => {
+      const p = JSON.parse(raw) as ForecastItem[];
+      if (!Array.isArray(p)) throw new Error("bad");
+      return p;
+    });
+    if (f) setForecastItems(f);
+    const d = readKey(FORECAST_DIVISOR_KEY, (raw) => {
+      const n = Number(raw);
+      if (!Number.isFinite(n) || n <= 0) throw new Error("bad");
+      return n;
+    });
+    if (d) setForecastDivisor(d);
+    const t = readKey(TAGS_KEY, (raw) => JSON.parse(raw) as { custom?: string[]; deleted?: string[] });
+    if (t) {
+      setCustomTags(t.custom ?? []);
+      setDeletedTags(t.deleted ?? []);
+    }
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as Entry[];
-        setEntries(parsed.map((e) => ({ ...e, kind: e.kind ?? "entradas" })));
-      }
-      const rawRec = localStorage.getItem(REC_KEY);
-      if (rawRec) {
-        const parsed = JSON.parse(rawRec) as Recurrence[];
-        setRecurrences(parsed.map((r) => ({ ...r, skipped: r.skipped ?? [] })));
-      }
-      const rawForecast = localStorage.getItem(FORECAST_KEY);
-      if (rawForecast) setForecastItems(JSON.parse(rawForecast) as ForecastItem[]);
-      const rawDivisor = localStorage.getItem(FORECAST_DIVISOR_KEY);
-      if (rawDivisor) {
-        const d = Number(rawDivisor);
-        if (Number.isFinite(d) && d > 0) setForecastDivisor(d);
-      }
-      const rawTags = localStorage.getItem(TAGS_KEY);
-      if (rawTags) {
-        const parsed = JSON.parse(rawTags) as { custom?: string[]; deleted?: string[] };
-        setCustomTags(parsed.custom ?? []);
-        setDeletedTags(parsed.deleted ?? []);
-      }
+      void navigator.storage?.persist?.();
     } catch {
       /* ignore */
     }
@@ -282,11 +319,19 @@ function Index() {
 
   useEffect(() => {
     if (!loaded) return;
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-    localStorage.setItem(REC_KEY, JSON.stringify(recurrences));
-    localStorage.setItem(FORECAST_KEY, JSON.stringify(forecastItems));
-    localStorage.setItem(FORECAST_DIVISOR_KEY, String(forecastDivisor));
-    localStorage.setItem(TAGS_KEY, JSON.stringify({ custom: customTags, deleted: deletedTags }));
+    const write = (key: string, value: string) => {
+      try {
+        localStorage.setItem(key, value);
+        localStorage.setItem(key + BACKUP_SUFFIX, value);
+      } catch {
+        /* ignore */
+      }
+    };
+    write(STORAGE_KEY, JSON.stringify(entries));
+    write(REC_KEY, JSON.stringify(recurrences));
+    write(FORECAST_KEY, JSON.stringify(forecastItems));
+    write(FORECAST_DIVISOR_KEY, String(forecastDivisor));
+    write(TAGS_KEY, JSON.stringify({ custom: customTags, deleted: deletedTags }));
   }, [entries, recurrences, forecastItems, forecastDivisor, customTags, deletedTags, loaded]);
 
   // sincroniza a previsão gasto diário como saída diária automática no calendário
@@ -446,52 +491,44 @@ function Index() {
     return { totals: monthTotals, diaryDays, daysInMonth, forecastPerDay, savedTotal };
   }, [rows, monthTotals, cursor, daysInMonth, entries, recurrences, forecastItems]);
 
-  /** tags do mês com total somado */
+  /** todas as tags em uso, de todos os lançamentos e repetições (espelho do calendário) */
   const tagRows = useMemo<TagRow[]>(() => {
     const map = new Map<string, { total: number; count: number }>();
     const push = (tags: string[] | undefined, amount: number) => {
-      for (const t of tags ?? []) {
+      for (const t of new Set(tags ?? [])) {
         const cur = map.get(t) ?? { total: 0, count: 0 };
         map.set(t, { total: cur.total + amount, count: cur.count + 1 });
       }
     };
-    const first = iso(cursor.y, cursor.m, 1);
-    const last = iso(cursor.y, cursor.m, daysInMonth);
-    for (const e of entries) {
-      if (e.date >= first && e.date <= last) push(e.tags, e.amount);
-    }
-    for (const r of recurrences) {
-      for (const o of occurrencesInMonth(r, cursor.y, cursor.m)) push(o.tags, o.amount);
-    }
-    const derived = Array.from(map, ([tag, v]) => ({ tag, total: v.total, count: v.count }));
-    const visible = derived.filter((r) => !deletedTags.includes(r.tag));
-    const known = new Set(visible.map((r) => r.tag.toLowerCase()));
-    const extras = customTags
-      .filter((t) => !known.has(t.toLowerCase()))
-      .map((t) => ({ tag: t, total: 0, count: 0 }));
-    return [...visible, ...extras];
-  }, [entries, recurrences, cursor, daysInMonth, customTags, deletedTags]);
+    for (const e of entries) push(e.tags, e.amount);
+    for (const r of recurrences) push(r.tags, r.amount);
+    return Array.from(map, ([tag, v]) => ({ tag, total: v.total, count: v.count }));
+  }, [entries, recurrences]);
 
-  /** Renomeia uma tag só no mapa: lançamentos e valores não mudam. */
+  /** Renomeia uma tag em todos os lançamentos (valores não mudam). */
   function renameTag(oldTag: string, newTag: string) {
-    setDeletedTags((prev) => (prev.includes(oldTag) ? prev : [...prev, oldTag]));
-    setCustomTags((prev) => {
-      const withoutOld = prev.filter((t) => t !== oldTag);
-      return withoutOld.some((t) => t.toLowerCase() === newTag.toLowerCase())
-        ? withoutOld
-        : [...withoutOld, newTag];
-    });
+    const swap = (list: string[]) => {
+      const out: string[] = [];
+      for (const t of list) {
+        const n = t === oldTag ? newTag : t;
+        if (!out.includes(n)) out.push(n);
+      }
+      return out;
+    };
+    const apply = <T extends { tags?: string[] }>(x: T): T =>
+      x.tags?.includes(oldTag) ? { ...x, tags: swap(x.tags) } : x;
+    setEntries((prev) => prev.map(apply));
+    setRecurrences((prev) => prev.map(apply));
+    setTags((prev) => swap(prev));
   }
 
-  /** Apaga uma tag do mapa e de todos os lançamentos (valores não mudam). */
+  /** Apaga uma tag de todos os lançamentos (valores não mudam). */
   function deleteTag(tag: string) {
     const strip = <T extends { tags?: string[] }>(x: T): T =>
       x.tags?.includes(tag) ? { ...x, tags: x.tags.filter((t) => t !== tag) } : x;
     setEntries((prev) => prev.map(strip));
     setRecurrences((prev) => prev.map(strip));
     setTags((prev) => prev.filter((t) => t !== tag));
-    setCustomTags((prev) => prev.filter((t) => t !== tag));
-    setDeletedTags((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
   }
 
 
@@ -701,8 +738,8 @@ function Index() {
       return;
     }
     const { y, m, d } = formDateParts;
-    const cleanTags = tags.slice(0, 8);
-    if (cleanTags.length > 0) setDeletedTags((prev) => prev.filter((t) => !cleanTags.includes(t)));
+    const pendingTag = tagInput.trim().slice(0, 24);
+    const cleanTags = (pendingTag && !tags.includes(pendingTag) ? [...tags, pendingTag] : tags).slice(0, 8);
     const horizonTransfer = formOrigin === "horizon" && kind === "economias";
 
     // edição de um lançamento existente: preserva tudo, aplica só o que mudou
@@ -1122,6 +1159,8 @@ function Index() {
 
   const navBtn =
     "grid size-9 shrink-0 place-items-center rounded-full border-[1.5px] border-foreground/30 text-lg font-bold leading-none text-foreground transition-colors hover:bg-accent";
+
+  if (!loaded) return <LoadingScreen />;
 
   return (
     <div className="flex min-h-screen bg-background">

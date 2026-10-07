@@ -1,3 +1,5 @@
+import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
+
 type Status = "surplus" | "positive" | "warning" | "negative";
 
 export type HorizonDay = {
@@ -42,9 +44,83 @@ type Props = {
 };
 
 export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso, highlightDate }: Props) {
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const gestureRef = useRef<{
+    pointerId: number;
+    lastX: number;
+    lastY: number;
+    axis: "x" | "y" | null;
+  } | null>(null);
+  const wheelAxisRef = useRef<{ axis: "x" | "y"; expiresAt: number } | null>(null);
   const nav =
     "grid size-9 shrink-0 place-items-center rounded-full border border-border text-foreground transition-colors hover:bg-accent";
   const maxDays = Math.max(...months.map((mo) => mo.days.length), 31);
+
+  const moveVertically = (scroller: HTMLDivElement, delta: number) => {
+    const before = scroller.scrollTop;
+    const max = Math.max(0, scroller.scrollHeight - scroller.clientHeight);
+    const next = Math.min(max, Math.max(0, before + delta));
+    scroller.scrollTop = next;
+    const remainder = delta - (next - before);
+    if (remainder !== 0) window.scrollBy({ top: remainder, behavior: "auto" });
+  };
+
+  useEffect(() => {
+    const scroller = scrollerRef.current;
+    if (!scroller) return;
+
+    const onWheel = (event: WheelEvent) => {
+      event.preventDefault();
+      const multiplier = event.deltaMode === 1 ? 16 : event.deltaMode === 2 ? scroller.clientHeight : 1;
+      const dx = event.deltaX * multiplier;
+      const dy = event.deltaY * multiplier;
+      const now = performance.now();
+      const active = wheelAxisRef.current;
+      const axis = active && active.expiresAt > now
+        ? active.axis
+        : Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+      wheelAxisRef.current = { axis, expiresAt: now + 140 };
+
+      if (axis === "x") scroller.scrollLeft += dx || dy;
+      else moveVertically(scroller, dy || dx);
+    };
+
+    scroller.addEventListener("wheel", onWheel, { passive: false });
+    return () => scroller.removeEventListener("wheel", onWheel);
+  }, []);
+
+  const beginTouch = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (event.pointerType === "mouse" || !event.isPrimary) return;
+    gestureRef.current = {
+      pointerId: event.pointerId,
+      lastX: event.clientX,
+      lastY: event.clientY,
+      axis: null,
+    };
+    event.currentTarget.setPointerCapture(event.pointerId);
+  };
+
+  const moveTouch = (event: ReactPointerEvent<HTMLDivElement>) => {
+    const gesture = gestureRef.current;
+    if (!gesture || gesture.pointerId !== event.pointerId) return;
+    const dx = gesture.lastX - event.clientX;
+    const dy = gesture.lastY - event.clientY;
+
+    if (!gesture.axis) {
+      if (Math.hypot(dx, dy) < 6) return;
+      gesture.axis = Math.abs(dx) > Math.abs(dy) ? "x" : "y";
+    }
+
+    event.preventDefault();
+    if (gesture.axis === "x") event.currentTarget.scrollLeft += dx;
+    else moveVertically(event.currentTarget, dy);
+    gesture.lastX = event.clientX;
+    gesture.lastY = event.clientY;
+  };
+
+  const endTouch = (event: ReactPointerEvent<HTMLDivElement>) => {
+    if (gestureRef.current?.pointerId === event.pointerId) gestureRef.current = null;
+  };
 
   return (
     <section className="min-w-0">
@@ -72,7 +148,14 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso, hi
       </div>
 
       <div className="rounded-2xl border border-border">
-        <div className="max-h-[calc(100vh-160px)] overflow-auto overscroll-contain rounded-2xl">
+        <div
+          ref={scrollerRef}
+          className="max-h-[calc(100vh-160px)] touch-none overflow-auto overscroll-none rounded-2xl"
+          onPointerDown={beginTouch}
+          onPointerMove={moveTouch}
+          onPointerUp={endTouch}
+          onPointerCancel={endTouch}
+        >
           <div className="flex min-w-max">
             {months.map((mo) => (
               <div key={`${mo.y}-${mo.m}`} className="w-40 shrink-0 border-r border-border last:border-r-0">

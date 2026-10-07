@@ -18,3 +18,5 @@
 
 - [x] Totais > poupança: texto vira só "poupando N% do seu salário", com N inteiro e variando por mês/ano
 - [x] Menu > previsão gasto diário: apagar só os dois textos pequenos ("neste mês…" e "esse valor entra automaticamente…"), mantendo gastos, total mensal, dividido por e previsão por dia
+
+- [x] Proteger valores contra sumiço ao atualizar/recarregar (só computador, sem nuvem)
