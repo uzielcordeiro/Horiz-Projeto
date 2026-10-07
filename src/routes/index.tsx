@@ -697,6 +697,7 @@ function Index() {
     }
     const { y, m, d } = formDateParts;
     const cleanTags = tags.slice(0, 8);
+    if (cleanTags.length > 0) setDeletedTags((prev) => prev.filter((t) => !cleanTags.includes(t)));
     const horizonTransfer = formOrigin === "horizon" && kind === "economias";
 
     // edição de um lançamento existente: preserva tudo, aplica só o que mudou
@@ -735,7 +736,7 @@ function Index() {
               kind: original.kind,
               name: cleanLabel,
               label: cleanLabel,
-              tags: original.tags ?? [],
+              tags: cleanTags,
               amount: value,
               freq: mappedFreq,
               daysOfMonth: dom,
@@ -755,6 +756,7 @@ function Index() {
                     ...en,
                     amount: value,
                     label: cleanLabel,
+                    tags: cleanTags,
                   }
                 : en,
             ),
@@ -777,6 +779,7 @@ function Index() {
                   daysOfMonth: dom,
                   daysOfWeek: dow,
                   installments: parcelas,
+                  tags: cleanTags,
                 }
               : r,
           ),
@@ -793,7 +796,7 @@ function Index() {
               date: original.startDate,
               label: cleanLabel,
               kind: original.kind as Kind,
-              tags: original.tags ?? [],
+              tags: cleanTags,
               horizonTransfer: original.horizonTransfer === true,
             },
           ],
@@ -1941,8 +1944,8 @@ function Index() {
                 )}
               </div>
 
-              {/* tags são definidas somente ao adicionar e preservadas na edição */}
-              {windowMode === "add" && (
+              {/* tags: ao adicionar e ao editar */}
+              {(windowMode === "add" || windowMode === "edit") && (
               <div className="space-y-2 rounded-2xl bg-card p-4">
                 <span className="text-xs font-medium text-muted-foreground">tags</span>
                 <div className="flex items-center gap-2">
