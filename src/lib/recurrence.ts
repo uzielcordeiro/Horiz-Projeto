@@ -20,6 +20,8 @@ export type Recurrence = {
   monthlyBudget?: number;
   /** Previsão de gasto diário: soma dos itens semanais (vira valor/7 por dia). */
   weeklyBudget?: number;
+  /** Ajustes por dia da previsão: null = valor apagado; número = gasto real do dia. */
+  dayEdits?: Record<string, number | null>;
 };
 
 export type Occurrence = {
@@ -54,9 +56,49 @@ export function dailyBudgetAmount(monthly: number, weekly: number, y: number, m:
   return Math.floor((monthlyCents * 7 + weeklyCents * days) / (days * 7)) / 100;
 }
 
+/**
+ * Valores de cada dia do mês da previsão, recalculando só para frente.
+ * - Apagar dia D: o valor dele sai do total do mês; o que sobra (menos o já gasto antes de D)
+ *   é dividido pelos dias de D até o fim do mês (D incluso).
+ * - Gasto real X no dia D: o dia fica com X; o que sobra é dividido de D+1 até o fim.
+ * Sempre em centavos, arredondando para baixo.
+ */
+export function forecastMonthAmounts(
+  monthly: number,
+  weekly: number,
+  edits: Record<string, number | null> | undefined,
+  y: number,
+  m: number,
+): number[] {
+  const days = lastDay(y, m);
+  let rate = Math.round(dailyBudgetAmount(monthly, weekly, y, m) * 100);
+  let total = rate * days;
+  let spent = 0;
+  const out: number[] = [];
+  for (let d = 1; d <= days; d++) {
+    const key = isoOf(y, m, d);
+    const edit = edits && key in edits ? edits[key] : undefined;
+    let value: number;
+    if (edit === null) {
+      total -= rate;
+      rate = Math.max(0, Math.floor((total - spent) / (days - d + 1)));
+      value = rate;
+    } else if (typeof edit === "number") {
+      value = Math.round(edit * 100);
+      const left = days - d;
+      if (left > 0) rate = Math.max(0, Math.floor((total - spent - value) / left));
+    } else value = rate;
+    spent += value;
+    out.push(value / 100);
+  }
+  return out;
+}
+
 const amountOn = (rec: Recurrence, date: string) => {
   if (rec.monthlyBudget == null && rec.weeklyBudget == null) return rec.amount;
-  const { y, m } = parseIso(date);
+  const { y, m, d } = parseIso(date);
+  if (rec.dayEdits && Object.keys(rec.dayEdits).length > 0)
+    return forecastMonthAmounts(rec.monthlyBudget ?? 0, rec.weeklyBudget ?? 0, rec.dayEdits, y, m)[d - 1] ?? 0;
   return dailyBudgetAmount(rec.monthlyBudget ?? 0, rec.weeklyBudget ?? 0, y, m);
 };
 

@@ -1,4 +1,4 @@
-# Horizon Project Hub
+# Unified Orchestrator
 
 https://github.com/uzielcordeiro/Horiz-Projeto-Pai-De-Todos
 
@@ -6,7 +6,7 @@ This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/22754396-c79b-49d9-b060-4c03c9c03e5e).
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/e3bc9dca-8395-4975-a980-fcf3eaea814f).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.

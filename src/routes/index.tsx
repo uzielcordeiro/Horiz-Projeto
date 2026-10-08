@@ -190,6 +190,9 @@ function Index() {
   const [adding, setAdding] = useState(false);
   const [windowMode, setWindowMode] = useState<"add" | "list" | "detail" | "edit" | "info">("add");
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
+  const [forecastSpent, setForecastSpent] = useState("");
+  const [forecastConfirm, setForecastConfirm] = useState(false);
+  const [forecastShake, setForecastShake] = useState(0);
   const [view, setView] = useState<"saldos" | "horizonte" | "totais" | "tags" | "menu" | "diario">("saldos");
   const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
 
@@ -967,6 +970,20 @@ function Index() {
     commit(
       entries,
       recurrences.map((r) => (r.id === recurrenceId ? { ...r, amount: value } : r)),
+    );
+  }
+
+  /** ajuste de um dia da previsão diária: null apaga, número = gasto real, undefined restaura */
+  function setForecastDay(date: string, value: number | null | undefined) {
+    commit(
+      entries,
+      recurrences.map((r) => {
+        if (r.id !== FORECAST_ID) return r;
+        const next = { ...(r.dayEdits ?? {}) };
+        if (value === undefined) delete next[date];
+        else next[date] = value;
+        return { ...r, dayEdits: next };
+      }),
     );
   }
 
@@ -1773,6 +1790,108 @@ function Index() {
                   )}
                   .
                 </p>
+                {windowKind === "diarios" && (() => {
+                  const fr = recurrences.find((r) => r.id === FORECAST_ID);
+                  if (!fr) return null;
+                  const edit = fr.dayEdits?.[formDate];
+                  const dayValue =
+                    windowDayRow?.items.find((it) => it.recurrenceId === FORECAST_ID)?.amount ?? 0;
+                  return (
+                    <div className="mt-4 space-y-3 border-t border-border pt-4">
+                      <p className="text-xs font-medium text-muted-foreground">
+                        valor do dia {edit === null ? "(apagado — recalculado)" : typeof edit === "number" ? "(gasto real)" : ""}
+                      </p>
+                      <p className="font-display text-2xl font-bold tabular-nums text-negative">
+                        <FitMoney value={dayValue} />
+                      </p>
+                      <div className="flex gap-2">
+                        <div
+                          key={forecastShake}
+                          className={`flex h-10 min-w-0 flex-1 items-center gap-1 rounded-xl border bg-background px-3 ${
+                            forecastShake ? "animate-shake border-destructive" : "border-border focus-within:border-ring"
+                          }`}
+                        >
+                          <span className="text-base text-muted-foreground">R$</span>
+                          <input
+                            inputMode="decimal"
+                            placeholder="gastei outro valor"
+                            value={forecastSpent}
+                            onChange={(e) => {
+                              setForecastShake(0);
+                              setForecastSpent(formatMoneyInput(e.target.value));
+                            }}
+                            onBlur={() => {
+                              const v = parseAmount(forecastSpent);
+                              if (forecastSpent && Number.isFinite(v)) setForecastSpent(fmtAmount(v));
+                            }}
+                            className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
+                          />
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            const v = parseAmount(forecastSpent);
+                            if (!forecastSpent.trim() || !Number.isFinite(v) || v < 0) {
+                              setForecastShake((n) => n + 1);
+                              return;
+                            }
+                            setForecastDay(formDate, v);
+                            setForecastSpent("");
+                            closeWindow();
+                          }}
+                          className="h-10 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground"
+                        >
+                          salvar
+                        </button>
+                      </div>
+                      {edit !== undefined ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setForecastDay(formDate, undefined);
+                            setForecastSpent("");
+                            closeWindow();
+                          }}
+                          className="h-10 w-full rounded-xl border border-primary/40 bg-primary/15 text-sm font-semibold text-primary"
+                        >
+                          restaurar
+                        </button>
+                      ) : forecastConfirm ? (
+                        <div className="space-y-2 rounded-xl border border-destructive/40 p-3">
+                          <p className="text-sm font-semibold text-foreground">Tem certeza?</p>
+                          <div className="flex gap-2">
+                            <button
+                              type="button"
+                              onClick={() => {
+                                setForecastDay(formDate, null);
+                                setForecastConfirm(false);
+                                closeWindow();
+                              }}
+                              className="h-9 flex-1 rounded-lg bg-destructive text-sm font-semibold text-destructive-foreground"
+                            >
+                              sim, apagar
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setForecastConfirm(false)}
+                              className="h-9 flex-1 rounded-lg border border-border text-sm font-semibold text-foreground"
+                            >
+                              cancelar
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <button
+                          type="button"
+                          onClick={() => setForecastConfirm(true)}
+                          className="h-10 w-full rounded-xl border border-destructive/40 text-sm font-semibold text-destructive"
+                        >
+                          apagar valor
+                        </button>
+                      )}
+                    </div>
+                  );
+                })()}
                 {windowKind === "economias" && activeItem?.horizonTransfer && (
                   <button
                     type="button"
