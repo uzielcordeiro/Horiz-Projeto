@@ -1,5 +1,5 @@
 import { FitMoney } from "@/components/FitMoney";
-import { formatMoneyInput } from "@/lib/money-input";
+import { MoneyInput } from "@/components/MoneyInput";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -147,8 +147,6 @@ function parseAmount(input: string) {
   return Number.isFinite(n) ? n : NaN;
 }
 
-// campo de valor: aceita apenas números, vírgula e ponto
-const sanitizeAmountInput = formatMoneyInput;
 
 const balanceSign = (kind: Kind, horizonTransfer?: boolean): 1 | -1 | 0 => {
   if (kind === "economias" && horizonTransfer) return -1;
@@ -192,6 +190,7 @@ function Index() {
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
   const [forecastSpent, setForecastSpent] = useState("");
   const [forecastConfirm, setForecastConfirm] = useState(false);
+  const [forecastRestoring, setForecastRestoring] = useState(false);
   const [forecastShake, setForecastShake] = useState(0);
   const [view, setView] = useState<"saldos" | "horizonte" | "totais" | "tags" | "menu" | "diario">("saldos");
   const [horizonStart, setHorizonStart] = useState({ y: today.getFullYear(), m: today.getMonth() });
@@ -1226,7 +1225,9 @@ function Index() {
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
           <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 ${isHorizon ? "px-3 py-1.5 sm:px-4" : "px-5 py-3 sm:px-8"}`}>
             <h1 className={`truncate font-display font-semibold text-foreground ${isHorizon ? "text-lg" : "text-xl sm:text-2xl"}`}>
-              {view === "diario" ? "previsão gasto diário" : view}
+              {view === "diario"
+                ? `previsão gasto diário de ${today.toLocaleDateString("pt-BR", { month: "long" })}`
+                : view}
             </h1>
             <div className={`flex shrink-0 items-center gap-1 ${view === "horizonte" || view === "menu" || view === "diario" ? "hidden" : ""}`}>
               <button onClick={() => shiftMonth(-12)} aria-label="Ano anterior" className={navBtn}>
@@ -1277,14 +1278,11 @@ function Index() {
                   </div>
                   <div className="rounded-2xl bg-card p-4">
                     <span className="text-xs font-medium text-muted-foreground">valor</span>
-                    <input
+                    <MoneyInput
                       autoFocus
-                      inputMode="decimal"
                       maxLength={20}
                       value={j.amount}
-                      onChange={(ev) =>
-                        setHorizonJump({ ...j, amount: sanitizeAmountInput(ev.target.value), ask: null, error: null })
-                      }
+                      onValueChange={(v) => setHorizonJump({ ...j, amount: v, ask: null, error: null })}
                       placeholder="0,00"
                       className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 font-display text-2xl font-bold tabular-nums text-foreground outline-none focus:border-primary"
                     />
@@ -1661,6 +1659,7 @@ function Index() {
           const activeItem = windowDayItems.find((item) => item.key === activeItemKey) ?? null;
           const closeWindow = () => {
             setAdding(false);
+            setForecastRestoring(false);
             setError(null);
             setShowCal(false);
             setEditTarget(null);
@@ -1801,56 +1800,73 @@ function Index() {
                       <p className="text-xs font-medium text-muted-foreground">
                         valor do dia {edit === null ? "(apagado — recalculado)" : typeof edit === "number" ? "(gasto real)" : ""}
                       </p>
-                      <p className="font-display text-2xl font-bold tabular-nums text-negative">
-                        <FitMoney value={dayValue} />
-                      </p>
-                      <div className="flex gap-2">
-                        <div
-                          key={forecastShake}
-                          className={`flex h-10 min-w-0 flex-1 items-center gap-1 rounded-xl border bg-background px-3 ${
-                            forecastShake ? "animate-shake border-destructive" : "border-border focus-within:border-ring"
-                          }`}
-                        >
-                          <span className="text-base text-muted-foreground">R$</span>
-                          <input
-                            inputMode="decimal"
-                            placeholder="gastei outro valor"
-                            value={forecastSpent}
-                            onChange={(e) => {
-                              setForecastShake(0);
-                              setForecastSpent(formatMoneyInput(e.target.value));
-                            }}
-                            onBlur={() => {
-                              const v = parseAmount(forecastSpent);
-                              if (forecastSpent && Number.isFinite(v)) setForecastSpent(fmtAmount(v));
-                            }}
-                            className="h-full min-w-0 flex-1 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
-                          />
-                        </div>
-                        <button
-                          type="button"
-                          onClick={() => {
-                            const v = parseAmount(forecastSpent);
-                            if (!forecastSpent.trim() || !Number.isFinite(v) || v < 0) {
-                              setForecastShake((n) => n + 1);
-                              return;
-                            }
-                            setForecastDay(formDate, v);
+                      {(() => {
+                        const saveTop = edit !== undefined || forecastRestoring;
+                        const save = () => {
+                          if (saveTop && !forecastSpent.trim()) {
                             setForecastSpent("");
                             closeWindow();
-                          }}
-                          className="h-10 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground"
-                        >
-                          salvar
-                        </button>
-                      </div>
-                      {edit !== undefined ? (
+                            return;
+                          }
+                          const v = parseAmount(forecastSpent);
+                          if (!forecastSpent.trim() || !Number.isFinite(v) || v < 0) {
+                            setForecastShake((n) => n + 1);
+                            return;
+                          }
+                          setForecastDay(formDate, v);
+                          setForecastSpent("");
+                          closeWindow();
+                        };
+                        const saveBtn = (
+                          <button
+                            type="button"
+                            onClick={save}
+                            className="h-10 shrink-0 rounded-xl bg-primary px-3 text-sm font-semibold text-primary-foreground"
+                          >
+                            salvar
+                          </button>
+                        );
+                        return (
+                          <>
+                            <div className="flex items-center justify-between gap-2">
+                              <p className="font-display text-2xl font-bold tabular-nums text-negative">
+                                <FitMoney value={dayValue} />
+                              </p>
+                              {saveTop && saveBtn}
+                            </div>
+                            {(
+                              <div className="flex gap-2">
+                                <div
+                                  key={forecastShake}
+                                  className={`flex h-10 min-w-0 flex-1 items-center gap-1 rounded-xl border bg-background px-3 ${
+                                    forecastShake ? "animate-shake border-destructive" : "border-border focus-within:border-ring"
+                                  }`}
+                                >
+                                  <span className="text-base text-muted-foreground">R$</span>
+                                  <MoneyInput
+                                    placeholder="gastei outro valor"
+                                    value={forecastSpent}
+                                    onValueChange={(v) => {
+                                      setForecastShake(0);
+                                      setForecastSpent(v);
+                                    }}
+                                    wrapperClassName="h-full min-w-0 flex-1"
+                                    className="h-full w-full min-w-0 bg-transparent text-base text-foreground outline-none placeholder:text-muted-foreground"
+                                  />
+                                </div>
+                                {!saveTop && saveBtn}
+                              </div>
+                            )}
+                          </>
+                        );
+                      })()}
+                      {forecastRestoring ? null : edit !== undefined ? (
                         <button
                           type="button"
                           onClick={() => {
                             setForecastDay(formDate, undefined);
                             setForecastSpent("");
-                            closeWindow();
+                            setForecastRestoring(true);
                           }}
                           className="h-10 w-full rounded-xl border border-primary/40 bg-primary/15 text-sm font-semibold text-primary"
                         >
@@ -1970,12 +1986,11 @@ function Index() {
                 <span className="text-xs font-medium text-muted-foreground">
                   {freq !== "unico" ? "valor da parcela" : "valor"}
                 </span>
-                <input
+                <MoneyInput
                   autoFocus
-                  inputMode="decimal"
                   maxLength={20}
                   value={amount}
-                  onChange={(ev) => setAmount(sanitizeAmountInput(ev.target.value))}
+                  onValueChange={setAmount}
                   placeholder="0,00"
                   className="mt-1 h-12 w-full rounded-xl border border-input bg-background px-3 font-display text-2xl font-bold tabular-nums text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30"
                 />

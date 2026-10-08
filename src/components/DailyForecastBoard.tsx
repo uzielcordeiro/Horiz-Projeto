@@ -1,5 +1,5 @@
 import { FitMoney } from "@/components/FitMoney";
-import { formatMoneyInput } from "@/lib/money-input";
+import { MoneyInput } from "@/components/MoneyInput";
 import { dailyBudgetAmount } from "@/lib/recurrence";
 import { useMemo, useState } from "react";
 import { AddWindow } from "@/components/AddWindow";
@@ -203,10 +203,9 @@ export function DailyForecastBoard({
 
             <label className="block space-y-1">
               <span className="text-xs text-muted-foreground">valor</span>
-              <input
+              <MoneyInput
                 value={amount}
-                onChange={(e) => setAmount(formatMoneyInput(e.target.value))}
-                inputMode="decimal"
+                onValueChange={setAmount}
                 placeholder="450,00"
                 className={field}
               />

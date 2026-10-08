@@ -18,3 +18,14 @@ export function formatMoneyInput(raw: string): string {
 export function parseMoneyInput(input: string): number {
   return Number(input.replace(/\s|R\$/g, "").replace(/\./g, "").replace(",", "."));
 }
+
+/**
+ * Casas decimais que ainda faltam no que foi digitado, para mostrar clarinho.
+ * "" -> "", "10" -> ",00", "10," -> "00", "10,5" -> "0", "10,50" -> "".
+ */
+export function moneyGhostSuffix(value: string): string {
+  if (!value) return "";
+  const i = value.indexOf(",");
+  if (i === -1) return ",00";
+  return "0".repeat(Math.max(0, 2 - (value.length - i - 1)));
+}
