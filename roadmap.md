@@ -1,22 +1,17 @@
 # Roadmap
 
-- [x] URGENTE — tornar os cliques da barra lateral resistentes a sequências rápidas após refresh
-- [x] Proteger permanentemente a barra lateral contra regressões em alterações futuras
-- [x] Previsão gasto diário entra como saída diária automática no calendário (todos os meses, a partir do mês atual)
-- [x] Sincronização bidirecional: editar/apagar na aba previsão reflete no calendário; apagar a saída automática no calendário limpa a previsão
-- [x] Horizonte: verde-escuro para saldo acima de R$ 2.000
-- [x] Transferências do Horizonte para Economias reduzem o saldo futuro e devolvem valores ao editar/apagar
-- [x] Janela compacta separada em adicionar, lista, detalhes e edição simplificada por categoria
+## Horizontes — aproveitar a tela (barra lateral NÃO mexe)
+- [x] Confirmar com o usuário antes de executar (regra permanente).
+- [x] Afinar a barra do topo no Horizonte: "horizonte" mais baixo, linha divisória mais perto da palavra.
+- [x] Subir a legenda de cores e as setas de mês/ano para essa mesma faixa do topo (setas no canto direito).
+- [x] Quadro cresce nos 4 sentidos: mais perto da barra lateral à esquerda, mais perto da borda direita, mais pra cima e esticado até a borda de baixo (sem faixa morta).
+- [x] Linhas dos dias continuam com 32px (usuário não pediu pra apertar).
+- [x] Checar no preview: mais dias e mais meses visíveis, toque/rolagem intactos.
 
-- [x] Calendário: Diários e Economias só leitura (Diários editado só no Menu, Economias só no Horizonte)
-- [x] Economias: ao clicar no valor, mostrar "tirado do dia X de mês" (origem no Horizonte)
-- [x] Economias: origem leva ao dia exato no Horizonte, com janela para editar/desfazer (só vindo do calendário)
-- [x] Horizonte: navegar até a data de origem e manter a célula marcada com borda pontilhada animada após fechar o ajuste
-- [x] Calendário: Saldos só leitura, com caixa "use as outras colunas"
-- [x] Repetição (todas as categorias): campo de parcelas à esquerda e "sem fim" à direita, com larguras iguais
-- [x] Redesenhar cabeçalho da janela de adicionar (opção 4)
+## Horizontes — bolinhas das setas (canto superior direito)
+- [x] Contorno das 4 bolinhas mais grosso (2px) e preto, bem visível.
+- [x] Interior verde-escuro enquanto aperta as setas simples (mês).
+- [x] Interior vermelho, de mesma força, enquanto aperta as setas duplas (ano), para os dois lados.
+- [x] Cor só enquanto aperta; a setinha continua escura por cima da cor.
 
-- [x] Totais > poupança: texto vira só "poupando N% do seu salário", com N inteiro e variando por mês/ano
-- [x] Menu > previsão gasto diário: apagar só os dois textos pequenos ("neste mês…" e "esse valor entra automaticamente…"), mantendo gastos, total mensal, dividido por e previsão por dia
-
-- [x] Proteger valores contra sumiço ao atualizar/recarregar (só computador, sem nuvem)
+- [ ] Diários: apagar valor de um dia específico; Menu recalcula total e previsão (total restante ÷ dias do mês); reflete em calendário, saldo e Horizonte (aguardando OK)

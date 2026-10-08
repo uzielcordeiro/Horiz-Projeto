@@ -24,17 +24,24 @@ const cell: Record<Status, string> = {
   negative: "bg-negative/20 text-negative",
 };
 
+/** mesmas cores dos dias do quadro, na ordem vermelho → amarelo → verde-claro → verde-escuro */
+const legend: { label: string; dotClass: string }[] = [
+  { label: "negativo", dotClass: "bg-negative/20" },
+  { label: "entre R$ 0 e R$ 1.000", dotClass: "bg-warning/25" },
+  { label: "R$ 1.000 até R$ 2.000", dotClass: "bg-positive/20" },
+  { label: "acima de R$ 2.000", dotClass: "bg-surplus" },
+];
+
 
 type Props = {
   months: HorizonMonth[];
   onShift: (delta: number) => void;
   onPick: (y: number, m: number, day: number) => void;
-  rangeLabel: string;
   todayIso: string;
   highlightDate?: string | null;
 };
 
-export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso, highlightDate }: Props) {
+export function HorizonBoard({ months, onShift, onPick, todayIso, highlightDate }: Props) {
   const scrollerRef = useRef<HTMLDivElement>(null);
   const gestureRef = useRef<{
     pointerId: number;
@@ -44,7 +51,10 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso, hi
   } | null>(null);
   const wheelAxisRef = useRef<{ axis: "x" | "y"; expiresAt: number } | null>(null);
   const nav =
-    "grid size-9 shrink-0 place-items-center rounded-full border border-border text-foreground transition-colors hover:bg-accent";
+    "grid size-9 shrink-0 place-items-center rounded-full border-2 border-foreground text-foreground transition-colors hover:bg-accent";
+  /** verde-escuro enquanto aperta a seta de mês, vermelho enquanto aperta a seta de ano */
+  const navMonth = `${nav} active:bg-surplus`;
+  const navYear = `${nav} active:bg-negative`;
   const maxDays = Math.max(...months.map((mo) => mo.days.length), 31);
 
   const moveVertically = (scroller: HTMLDivElement, delta: number) => {
@@ -114,34 +124,36 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso, hi
   };
 
   return (
-    <section className="min-w-0">
-      <div className="mb-3 flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="truncate font-display text-xl font-semibold text-foreground">
-            horizonte de saldos
-          </h2>
-          <p className="truncate text-xs text-muted-foreground">{rangeLabel}</p>
-        </div>
+    <section className="flex min-h-0 min-w-0 flex-1 flex-col">
+      <div className="mb-2 flex items-center justify-between gap-3">
+        <ul className="flex min-w-0 flex-wrap items-center gap-x-4 gap-y-1.5 text-xs text-muted-foreground">
+          {legend.map((item) => (
+            <li key={item.label} className="flex items-center gap-1.5 whitespace-nowrap">
+              <span aria-hidden className={`size-3 shrink-0 rounded-full ${item.dotClass}`} />
+              <span className="truncate">{item.label}</span>
+            </li>
+          ))}
+        </ul>
         <div className="flex shrink-0 items-center gap-1">
-          <button onClick={() => onShift(-12)} aria-label="12 meses antes" className={nav}>
+          <button onClick={() => onShift(-12)} aria-label="12 meses antes" className={navYear}>
             «
           </button>
-          <button onClick={() => onShift(-1)} aria-label="mês anterior" className={nav}>
+          <button onClick={() => onShift(-1)} aria-label="mês anterior" className={navMonth}>
             ‹
           </button>
-          <button onClick={() => onShift(1)} aria-label="próximo mês" className={nav}>
+          <button onClick={() => onShift(1)} aria-label="próximo mês" className={navMonth}>
             ›
           </button>
-          <button onClick={() => onShift(12)} aria-label="12 meses depois" className={nav}>
+          <button onClick={() => onShift(12)} aria-label="12 meses depois" className={navYear}>
             »
           </button>
         </div>
       </div>
 
-      <div className="rounded-2xl border border-border">
+      <div className="flex min-h-0 flex-1 flex-col rounded-2xl border border-border">
         <div
           ref={scrollerRef}
-          className="max-h-[calc(100vh-160px)] touch-none overflow-auto overscroll-none rounded-2xl"
+          className="min-h-0 flex-1 touch-none overflow-auto overscroll-none rounded-2xl"
           onPointerDown={beginTouch}
           onPointerMove={moveTouch}
           onPointerUp={endTouch}
@@ -195,9 +207,6 @@ export function HorizonBoard({ months, onShift, onPick, rangeLabel, todayIso, hi
         </div>
       </div>
 
-      <p className="mt-2 text-xs text-muted-foreground">
-        verde-escuro: acima de R$ 2.000 · verde-claro: de R$ 1.000 até R$ 2.000 · amarelo: entre R$ 0 e R$ 1.000 · vermelho: negativo. clique em um dia para lançar nele.
-      </p>
     </section>
   );
 }

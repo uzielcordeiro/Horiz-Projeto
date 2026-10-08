@@ -1161,6 +1161,9 @@ function Index() {
   const navBtn =
     "grid size-9 shrink-0 place-items-center rounded-full border-[1.5px] border-foreground/30 text-lg font-bold leading-none text-foreground transition-colors hover:bg-accent";
 
+  /** no Horizonte a página inteira vira o quadro: sem rolagem da página, tudo esticado */
+  const isHorizon = view === "horizonte" && !adding;
+
   if (!loaded) return <LoadingScreen />;
 
   return (
@@ -1202,10 +1205,10 @@ function Index() {
         }}
       />
 
-      <div className="min-w-0 flex-1">
+      <div className={isHorizon ? "flex h-screen min-w-0 flex-1 flex-col overflow-hidden" : "min-w-0 flex-1"}>
         <header className="sticky top-0 z-10 border-b border-border bg-background/90 backdrop-blur">
-          <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 px-5 py-3 sm:px-8">
-            <h1 className="truncate font-display text-xl font-semibold text-foreground sm:text-2xl">
+          <div className={`grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 ${isHorizon ? "px-3 py-1.5 sm:px-4" : "px-5 py-3 sm:px-8"}`}>
+            <h1 className={`truncate font-display font-semibold text-foreground ${isHorizon ? "text-lg" : "text-xl sm:text-2xl"}`}>
               {view === "diario" ? "previsão gasto diário" : view}
             </h1>
             <div className={`flex shrink-0 items-center gap-1 ${view === "horizonte" || view === "menu" || view === "diario" ? "hidden" : ""}`}>
@@ -1234,7 +1237,7 @@ function Index() {
           </div>
         </header>
 
-      <main className="w-full space-y-6 px-5 py-6 sm:px-8">
+      <main className={isHorizon ? "flex min-h-0 w-full flex-1 flex-col px-2 py-2 sm:px-3" : "w-full space-y-6 px-5 py-6 sm:px-8"}>
         {view === "horizonte" && !adding ? (
           <>
           {horizonJump && (() => {
@@ -1324,10 +1327,6 @@ function Index() {
             highlightDate={horizonHighlight}
             months={horizonMonths}
             todayIso={iso(today.getFullYear(), today.getMonth(), today.getDate())}
-            rangeLabel={`${monthLabel(horizonMonths[0]!.y, horizonMonths[0]!.m)} — ${monthLabel(
-              horizonMonths[11]!.y,
-              horizonMonths[11]!.m,
-            )}`}
             onShift={(delta) =>
               setHorizonStart((h) => {
                 const d = new Date(h.y, h.m + delta, 1);
