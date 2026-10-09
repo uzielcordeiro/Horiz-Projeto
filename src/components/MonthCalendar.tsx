@@ -7,14 +7,16 @@ const WD = ["D", "S", "T", "Q", "Q", "S", "S"];
 type Props = {
   value: string;
   onChange: (iso: string) => void;
+  /** Modo de vários dias: datas marcadas (ISO). Trava no mês de `value`. */
+  selected?: string[];
 };
 
 /** Calendário compacto pt-BR: navega meses/anos infinitos, passado ou futuro. */
-export function MonthCalendar({ value, onChange }: Props) {
+export function MonthCalendar({ value, onChange, selected }: Props) {
+  const multi = selected !== undefined;
   const parts = value.split("-").map(Number);
   const selY = parts[0] ?? new Date().getFullYear();
   const selM = (parts[1] ?? 1) - 1;
-  const selD = parts[2] ?? 1;
 
   const [view, setView] = useState({ y: selY, m: selM });
   useEffect(() => setView({ y: selY, m: selM }), [selY, selM]);
@@ -52,7 +54,7 @@ export function MonthCalendar({ value, onChange }: Props) {
   return (
     <div className="rounded-2xl bg-card p-3">
       <div className="mb-2 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-1">
-        <div className="flex items-center">
+        <div className={`flex items-center ${multi ? "invisible" : ""}`}>
           <button type="button" aria-label="Ano anterior" onClick={() => shift(-12)} className={nav}>
             «
           </button>
@@ -63,7 +65,7 @@ export function MonthCalendar({ value, onChange }: Props) {
         <p className="truncate text-center text-sm font-semibold text-foreground">
           {first.toLocaleDateString("pt-BR", { month: "long" })}/{view.y}
         </p>
-        <div className="flex items-center">
+        <div className={`flex items-center ${multi ? "invisible" : ""}`}>
           <button type="button" aria-label="Próximo mês" onClick={() => shift(1)} className={nav}>
             ›
           </button>
@@ -81,21 +83,26 @@ export function MonthCalendar({ value, onChange }: Props) {
 
       <div className="grid grid-cols-7 gap-1">
         {cells.map((c) => {
-          const isSel = c.iso === value;
+          const isSel = multi ? selected.includes(c.iso) : c.iso === value;
           const isToday = c.iso === todayIso;
+          const disabled = multi && c.muted;
           return (
             <button
               key={c.iso}
               type="button"
+              disabled={disabled}
+              aria-pressed={multi ? isSel : undefined}
               onClick={() => onChange(c.iso)}
               className={`grid h-9 place-items-center rounded-full text-sm tabular-nums transition-colors ${
-                isSel
-                  ? "bg-primary font-bold text-primary-foreground"
-                  : c.muted
-                    ? "text-muted-foreground/40 hover:bg-accent/50"
-                    : isToday
-                      ? "font-bold text-primary hover:bg-accent"
-                      : "text-foreground hover:bg-accent"
+                disabled
+                  ? "invisible"
+                  : isSel
+                    ? "bg-primary font-bold text-primary-foreground"
+                    : c.muted
+                      ? "text-muted-foreground/40 hover:bg-accent/50"
+                      : isToday
+                        ? "font-bold text-primary hover:bg-accent"
+                        : "text-foreground hover:bg-accent"
               }`}
             >
               {c.day}

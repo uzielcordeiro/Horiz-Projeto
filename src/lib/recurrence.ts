@@ -7,6 +7,17 @@ export function dailyRepetitionCount(input: string): number | null {
   return Number.isSafeInteger(count) && count > 0 ? count : null;
 }
 
+/** Includes the initial date, then every seven days within its month. */
+export function weeklyRepetitionLimit(startDate: string): number {
+  const { y, m, d } = parseIso(startDate);
+  return Math.floor((lastDay(y, m) - d) / 7) + 1;
+}
+
+export function weeklyRepetitionCount(input: string, startDate: string): number | null {
+  const count = dailyRepetitionCount(input);
+  return count !== null && count <= weeklyRepetitionLimit(startDate) ? count : null;
+}
+
 export type Recurrence = {
   id: string;
   kind: RecurrenceKind;
@@ -19,6 +30,8 @@ export type Recurrence = {
   daysOfWeek: number[];
   startDate: string;
   installments: number | null;
+  /** New weekly repetitions stop at the end of their starting month. */
+  weeklyWithinStartMonth?: boolean;
   endDate?: string | null;
   skipped: string[];
   /** Economias criadas pelo Horizonte funcionam como transferência do saldo. */
@@ -142,6 +155,32 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
     return false;
   };
 
+  // diárias com dias escolhidos: caem exatamente nesses dias, só no mês do lançamento
+  if (rec.freq === "daily" && rec.daysOfMonth.length > 0) {
+    const days = [...new Set(rec.daysOfMonth)]
+      .filter((d) => d >= 1 && d <= lastDay(start.y, start.m))
+      .sort((a, b) => a - b);
+    days.forEach((day, i) => {
+      const date = isoOf(start.y, start.m, day);
+      if (rec.endDate && date > rec.endDate) return;
+      if (date <= untilDate && !rec.skipped.includes(date)) {
+        out.push({
+          recurrenceId: rec.id,
+          kind: rec.kind,
+          date,
+          amount: amountOn(rec, date),
+          name: rec.name,
+          label: rec.label,
+          tags: rec.tags ?? [],
+          index: i + 1,
+          total: days.length,
+          horizonTransfer: rec.horizonTransfer === true,
+        });
+      }
+    });
+    return out;
+  }
+
   if (rec.freq === "daily") {
     const day = new Date(start.y, start.m, start.d);
     while (index < MAX_OCCURRENCES) {
@@ -171,6 +210,14 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
       y = next.getFullYear();
       m = next.getMonth();
       if (total == null && isoOf(y, m, 1) > untilDate) break;
+    }
+    return out;
+  }
+
+  if (rec.weeklyWithinStartMonth) {
+    const count = Math.min(total ?? 0, weeklyRepetitionLimit(rec.startDate));
+    for (let i = 0; i < count; i++) {
+      if (push(isoOf(start.y, start.m, start.d + i * 7))) break;
     }
     return out;
   }

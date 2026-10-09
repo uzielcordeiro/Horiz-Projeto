@@ -14,9 +14,10 @@ import { forecastBudgets } from "@/lib/forecast";
 import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
 import {
-  WEEKDAYS,
   dailyBudgetAmount,
   dailyRepetitionCount,
+  weeklyRepetitionCount,
+  weeklyRepetitionLimit,
   occurrencesInMonth,
   sumBefore,
   type Occurrence,
@@ -228,7 +229,6 @@ function Index() {
   const [infinite, setInfinite] = useState(false);
   const [installments, setInstallments] = useState("12");
   const [daysOfMonth, setDaysOfMonth] = useState<number[]>([]);
-  const [daysOfWeek, setDaysOfWeek] = useState<number[]>([]);
 
 
   // histórico (desfazer) e seleção múltipla
@@ -638,7 +638,6 @@ function Index() {
     setInfinite(false);
     setInstallments("12");
     setDaysOfMonth([]);
-    setDaysOfWeek([]);
     setTags([]);
     setTagInput("");
     setEditTarget(null);
@@ -664,9 +663,10 @@ function Index() {
       setFormDate(r.startDate);
       setFreq(r.freq === "monthly" ? "mensal" : r.freq === "weekly" ? "semanal" : "diario");
       setInfinite(r.installments == null);
-      setInstallments(String(r.installments ?? 12));
+      setInstallments(r.freq === "weekly"
+        ? r.installments == null ? "" : String(Math.min(r.installments, weeklyRepetitionLimit(r.startDate)))
+        : String(r.installments ?? 12));
       setDaysOfMonth(r.daysOfMonth ?? []);
-      setDaysOfWeek(r.daysOfWeek ?? []);
       setEditTarget({ type: "rec", id: r.id });
       setActiveItemKey(item.key);
       setWindowMode("edit");
@@ -685,7 +685,6 @@ function Index() {
       setInfinite(false);
       setInstallments("12");
       setDaysOfMonth([]);
-      setDaysOfWeek([]);
       setEditTarget({ type: "entry", id: en.id });
       setActiveItemKey(item.key);
       setWindowMode("edit");
@@ -695,10 +694,6 @@ function Index() {
   function scrollTableToStart() {
 
     tableRef.current?.scrollTo({ left: 0, behavior: "smooth" });
-  }
-
-  function toggle(list: number[], value: number, set: (v: number[]) => void) {
-    set(list.includes(value) ? list.filter((v) => v !== value) : [...list, value]);
   }
 
   function addTag(raw: string) {
@@ -718,6 +713,9 @@ function Index() {
     const p = formDate.split("-").map(Number);
     return { y: p[0] ?? today.getFullYear(), m: (p[1] ?? 1) - 1, d: p[2] ?? 1 };
   }, [formDate]);
+  const formMonthDays = new Date(formDateParts.y, formDateParts.m + 1, 0).getDate();
+  const formWeekLimit = weeklyRepetitionLimit(formDate);
+  const finiteRepetition = freq === "diario" || freq === "semanal";
 
   function saveEntry(e: React.FormEvent) {
     e.preventDefault();
@@ -737,8 +735,30 @@ function Index() {
     const horizonTransfer = formOrigin === "horizon" && kind === "economias";
     const dailyCount = freq === "diario" ? dailyRepetitionCount(installments) : null;
     if (freq === "diario" && dailyCount === null) {
-      setError("Informe quantas diárias com um número inteiro maior que zero.");
+      setError("É obrigatório preencher quantas diárias.");
       return;
+    }
+    const weeklyCount = freq === "semanal" ? weeklyRepetitionCount(installments, date) : null;
+    if (freq === "semanal" && weeklyCount === null) {
+      setError(dailyRepetitionCount(installments) !== null
+        ? `Escolha até ${formWeekLimit} semana${formWeekLimit > 1 ? "s" : ""} para esta data.`
+        : "É obrigatório preencher quantas semanas.");
+      return;
+    }
+    const dailyDays = [...new Set(daysOfMonth)].filter((x) => x <= formMonthDays).sort((a, b) => a - b);
+    if (freq === "diario" && dailyCount !== null) {
+      if (dailyCount > formMonthDays) {
+        setError(`Este mês tem no máximo ${formMonthDays} diárias.`);
+        return;
+      }
+      if (dailyDays.length === 0) {
+        setError("É obrigatório preencher os dias das diárias (Quais dias?).");
+        return;
+      }
+      if (dailyDays.length !== dailyCount) {
+        setError(`É obrigatório marcar exatamente ${dailyCount} dia${dailyCount > 1 ? "s" : ""} no calendário.`);
+        return;
+      }
     }
 
     // edição de um lançamento existente: preserva tudo, aplica só o que mudou
@@ -749,18 +769,13 @@ function Index() {
       let dom: number[] = [];
       let dow: number[] = [];
       if (isRec) {
-        parcelas = freq === "diario" ? dailyCount : infinite ? null : Math.floor(Number(installments));
-        if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
+        parcelas = freq === "diario" ? dailyCount : freq === "semanal" ? weeklyCount : infinite ? null : Math.floor(Number(installments));
+        if (freq === "mensal" && !infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
           setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
           return;
         }
-        dom = freq === "mensal" ? [d] : [];
-        dow =
-          freq === "semanal"
-            ? daysOfWeek.length
-              ? daysOfWeek
-              : [new Date(y, m, d).getDay()]
-            : [];
+        dom = freq === "mensal" ? [d] : freq === "diario" ? dailyDays : [];
+        dow = freq === "semanal" ? [new Date(y, m, d).getDay()] : [];
       }
       const mappedFreq =
         freq === "mensal" ? "monthly" : freq === "semanal" ? "weekly" : "daily";
@@ -784,6 +799,7 @@ function Index() {
               daysOfWeek: dow,
               startDate: date,
               installments: parcelas,
+              weeklyWithinStartMonth: freq === "semanal",
               endDate: null,
               skipped: [],
               horizonTransfer: original.horizonTransfer === true,
@@ -820,6 +836,7 @@ function Index() {
                   daysOfMonth: dom,
                   daysOfWeek: dow,
                   installments: parcelas,
+                  weeklyWithinStartMonth: freq === "semanal",
                   tags: cleanTags,
                 }
               : r,
@@ -855,18 +872,13 @@ function Index() {
 
     if (freq !== "unico") {
 
-      const parcelas = freq === "diario" ? dailyCount : infinite ? null : Math.floor(Number(installments));
-      if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
+      const parcelas = freq === "diario" ? dailyCount : freq === "semanal" ? weeklyCount : infinite ? null : Math.floor(Number(installments));
+      if (freq === "mensal" && !infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
         setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
         return;
       }
-      const dom = freq === "mensal" ? [d] : [];
-      const dow =
-        freq === "semanal"
-          ? daysOfWeek.length
-            ? daysOfWeek
-            : [new Date(y, m, d).getDay()]
-          : [];
+      const dom = freq === "mensal" ? [d] : freq === "diario" ? dailyDays : [];
+      const dow = freq === "semanal" ? [new Date(y, m, d).getDay()] : [];
       setError(null);
       commit(entries, [
         ...recurrences,
@@ -882,6 +894,7 @@ function Index() {
           daysOfWeek: dow,
           startDate: date,
           installments: parcelas,
+          weeklyWithinStartMonth: freq === "semanal",
           endDate: null,
           skipped: [],
           horizonTransfer,
@@ -2049,6 +2062,10 @@ function Index() {
                   <Button variant="ghost"
                     type="button"
                     onClick={() => {
+                      if (freq !== "diario") {
+                        setInstallments("");
+                        setDaysOfMonth([]);
+                      }
                       setFreq("diario");
                       setInfinite(false);
                     }}
@@ -2063,26 +2080,30 @@ function Index() {
                   >
                     mensal
                   </button>
-                  <button
+                  <Button variant="ghost"
                     type="button"
-                    onClick={() => setFreq("semanal")}
-                    className={chip(freq === "semanal")}
+                    onClick={() => {
+                      if (freq !== "semanal") setInstallments("");
+                      setFreq("semanal");
+                      setInfinite(false);
+                    }}
+                    className={`${chip(freq === "semanal")} transition-none`}
                   >
                     semanal
-                  </button>
+                  </Button>
                 </div>
 
                 {freq !== "unico" && (
-                  <div className={freq === "diario" ? "mx-auto w-full max-w-48 space-y-1.5 text-center" : "space-y-1.5"}>
+                  <div className={finiteRepetition ? "mx-auto w-full max-w-48 space-y-1.5 text-center" : "space-y-1.5"}>
                     <label htmlFor="repetition-count" className="text-xs font-medium text-muted-foreground">
-                      {freq === "diario" ? "quantas diárias" : "parcelas"}
+                      {freq === "diario" ? "quantas diárias" : freq === "semanal" ? "quantas semanas" : "parcelas"}
                     </label>
                     <div className="flex items-center gap-2">
                       <input
                         id="repetition-count"
                         inputMode="numeric"
                         pattern="[0-9]*"
-                        value={freq !== "diario" && infinite ? "" : installments}
+                        value={!finiteRepetition && infinite ? "" : installments}
                         onFocus={() => {
                           if (infinite) {
                             setInfinite(false);
@@ -2091,12 +2112,23 @@ function Index() {
                         }}
                         onChange={(ev) => {
                           setInfinite(false);
-                          setInstallments(ev.target.value.replace(/\D/g, ""));
+                          let next = ev.target.value.replace(/\D/g, "");
+                          if (freq === "diario" && next !== "") {
+                            const n = Math.min(Number(next), formMonthDays);
+                            next = n > 0 ? String(n) : "";
+                            const sorted = [...daysOfMonth].sort((a, b) => a - b);
+                            if (n > 0 && sorted.length > n) setDaysOfMonth(sorted.slice(0, n));
+                          }
+                          if (freq === "semanal" && next !== "") {
+                            const n = Math.min(Number(next), formWeekLimit);
+                            next = n > 0 ? String(n) : "";
+                          }
+                          setInstallments(next);
                         }}
-                        placeholder="12"
-                        className={`h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 ${freq === "diario" ? "text-center" : infinite ? "opacity-50" : ""}`}
+                        placeholder={freq === "diario" ? "3" : freq === "semanal" ? "2" : "12"}
+                        className={`h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 ${finiteRepetition ? "text-center" : infinite ? "opacity-50" : ""}`}
                       />
-                      {freq !== "diario" && <Button variant="ghost"
+                      {freq === "mensal" && <Button variant="ghost"
                         type="button"
                         onClick={() => setInfinite((v) => !v)}
                         className={`${chip(infinite)} !h-10 min-w-0 flex-1 !rounded-xl !px-3 !text-sm`}
@@ -2107,25 +2139,31 @@ function Index() {
                   </div>
                 )}
 
-                {freq === "semanal" && windowMode === "add" && (
+                {freq === "diario" && dailyRepetitionCount(installments) !== null && (
                   <div className="space-y-2">
-                    <p className="text-xs font-medium text-muted-foreground">
-                      dias da semana (pode escolher vários)
+                    <p className="text-center text-xs font-medium text-muted-foreground">
+                      Quais dias? ({daysOfMonth.length}/{installments})
                     </p>
-                    <div className="flex flex-wrap gap-1.5">
-                      {WEEKDAYS.map((w) => (
-                        <button
-                          key={w.value}
-                          type="button"
-                          onClick={() => toggle(daysOfWeek, w.value, setDaysOfWeek)}
-                          className={chip(daysOfWeek.includes(w.value))}
-                        >
-                          {w.short}
-                        </button>
-                      ))}
-                    </div>
+                    <MonthCalendar
+                      value={formDate}
+                      selected={daysOfMonth
+                        .filter((day) => day <= formMonthDays)
+                        .map((day) => iso(formDateParts.y, formDateParts.m, day))}
+                      onChange={(picked) => {
+                        const day = Number(picked.slice(8, 10));
+                        const limit = dailyRepetitionCount(installments) ?? 0;
+                        if (daysOfMonth.includes(day)) {
+                          setDaysOfMonth(daysOfMonth.filter((v) => v !== day));
+                        } else if (daysOfMonth.length < limit) {
+                          setDaysOfMonth([...daysOfMonth, day]);
+                        } else {
+                          setError(`Você escolheu ${limit} diária${limit > 1 ? "s" : ""}. Desmarque um dia ou aumente a quantidade.`);
+                        }
+                      }}
+                    />
                   </div>
                 )}
+
               </div>
 
               {/* tags: ao adicionar e ao editar */}
@@ -2174,7 +2212,7 @@ function Index() {
                 type="submit"
                 className="h-12 w-full rounded-2xl bg-positive px-5 text-base font-semibold text-positive-foreground transition-opacity hover:opacity-90"
               >
-                {windowMode === "edit" ? "salvar alterações" : `adicionar ${KINDS.find((k) => k.key === kind)!.title}`}
+                {windowMode === "edit" ? "salvar alterações" : `adicionar ${KINDS.find((k) => k.key === kind)?.title ?? kind}`}
               </button>
             </form>
             )}

@@ -1,5 +1,10 @@
 # Roadmap
 
+## Calendário — repetição semanal e campos compactos
+- [ ] Retirar avisos auxiliares de máximo em todos os controles de repetição.
+- [ ] Semanal: quantidade obrigatória, exemplo 2, sem mini calendário nem sem fim; repetir a cada 7 dias somente no mês inicial, com edição e recálculo compartilhados.
+- [ ] Verificar criação, edição, datas e totais semanais.
+
 ## Calendário — repetição diária
 - [x] Trocar parcelas por quantas diárias em todas as janelas, centralizar e remover sem fim apenas para diariamente, sem animação.
 - [x] Validar números inteiros positivos e conferir R$ 100 × 3 diárias = R$ 300, inclusão e edição.
@@ -19,3 +24,5 @@
 - [x] Cor só enquanto aperta; a setinha continua escura por cima da cor.
 
 - [ ] Diários: apagar valor de um dia específico; Menu recalcula total e previsão (total restante ÷ dias do mês); reflete em calendário, saldo e Horizonte (aguardando OK)
+
+- [x] Diárias com escolha de dias: placeholder 3, máximo = dias do mês, mini calendário "Quais dias?" após preencher quantidade, aviso obrigatório, recálculo ao editar, igual em todos os blocos de repetição

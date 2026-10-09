@@ -12,4 +12,6 @@
 - Use `dailyBudgetAmount` for daily forecast values in Menu, Totais, and calendar occurrences so all views share the same month-aware, downward-to-cents rounding.
 - Keep Horizonte gestures axis-locked and hand vertical overflow to the page because diagonal movement and trapped scrolling break touch navigation.
 - Load saved data before the main page paints (client-only route + layout effect, loading screen until ready) because a provisional empty render shows fake zeros on reload.
-- Keep calendar repetition controls shared across categories and use `dailyRepetitionCount` in both creation and editing; daily recurrences must store a finite count regardless of the monthly/weekly endless toggle.
+- Keep calendar repetition controls shared across categories; validate daily and weekly finite counts with the recurrence helpers in both creation and editing, while endless repetition belongs only to monthly controls, to keep calculations consistent.
+- Mark newly created or edited weekly recurrences with `weeklyWithinStartMonth` and generate their dates from the start date at seven-day intervals; unmarked saved recurrences retain legacy behavior to avoid silently changing existing records.
+- Daily recurrences with picked days store them in `daysOfMonth` and occur only on those days of the start month; empty `daysOfMonth` keeps legacy consecutive days. Why: reuses the existing field without migrating saved data.

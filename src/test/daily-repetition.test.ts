@@ -26,3 +26,12 @@ describe("daily repetition", () => {
     },
   );
 });
+describe("diárias com dias escolhidos", () => {
+  it("cai exatamente nos dias marcados do mês", () => {
+    const rec: Recurrence = {
+      id: "x", kind: "entradas", name: "d", label: "d", amount: 100, freq: "daily",
+      daysOfMonth: [31, 8, 15], daysOfWeek: [], startDate: "2026-10-08", installments: 3, skipped: [],
+    };
+    expect(occurrencesUntil(rec, "2027-12-31").map((o) => o.date)).toEqual(["2026-10-08", "2026-10-15", "2026-10-31"]);
+  });
+});
