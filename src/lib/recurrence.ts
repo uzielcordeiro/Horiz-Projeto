@@ -1,5 +1,12 @@
 export type RecurrenceKind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
 
+/** A daily repetition always needs a finite, positive whole-number count. */
+export function dailyRepetitionCount(input: string): number | null {
+  if (!/^\d+$/.test(input)) return null;
+  const count = Number(input);
+  return Number.isSafeInteger(count) && count > 0 ? count : null;
+}
+
 export type Recurrence = {
   id: string;
   kind: RecurrenceKind;

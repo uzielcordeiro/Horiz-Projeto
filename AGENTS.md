@@ -12,3 +12,4 @@
 - Use `dailyBudgetAmount` for daily forecast values in Menu, Totais, and calendar occurrences so all views share the same month-aware, downward-to-cents rounding.
 - Keep Horizonte gestures axis-locked and hand vertical overflow to the page because diagonal movement and trapped scrolling break touch navigation.
 - Load saved data before the main page paints (client-only route + layout effect, loading screen until ready) because a provisional empty render shows fake zeros on reload.
+- Keep calendar repetition controls shared across categories and use `dailyRepetitionCount` in both creation and editing; daily recurrences must store a finite count regardless of the monthly/weekly endless toggle.

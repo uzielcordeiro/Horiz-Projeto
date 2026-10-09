@@ -1,5 +1,9 @@
 # Roadmap
 
+## Calendário — repetição diária
+- [x] Trocar parcelas por quantas diárias em todas as janelas, centralizar e remover sem fim apenas para diariamente, sem animação.
+- [x] Validar números inteiros positivos e conferir R$ 100 × 3 diárias = R$ 300, inclusão e edição.
+
 ## Horizontes — aproveitar a tela (barra lateral NÃO mexe)
 - [x] Confirmar com o usuário antes de executar (regra permanente).
 - [x] Afinar a barra do topo no Horizonte: "horizonte" mais baixo, linha divisória mais perto da palavra.

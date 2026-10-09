@@ -1,5 +1,6 @@
 import { FitMoney } from "@/components/FitMoney";
 import { MoneyInput } from "@/components/MoneyInput";
+import { Button } from "@/components/ui/button";
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 
@@ -9,11 +10,13 @@ import { MonthCalendar } from "@/components/MonthCalendar";
 import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
 import { TotalsBoard } from "@/components/TotalsBoard";
 import { TagsBoard, type TagRow } from "@/components/TagsBoard";
+import { forecastBudgets } from "@/lib/forecast";
 import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
 import {
   WEEKDAYS,
   dailyBudgetAmount,
+  dailyRepetitionCount,
   occurrencesInMonth,
   sumBefore,
   type Occurrence,
@@ -340,12 +343,7 @@ function Index() {
   // sincroniza a previsão gasto diário como saída diária automática no calendário
   useEffect(() => {
     if (!loaded) return;
-    const monthlyBudget = forecastItems
-      .filter((i) => i.period !== "semanal")
-      .reduce((s, i) => s + i.amount, 0);
-    const weeklyBudget = forecastItems
-      .filter((i) => i.period === "semanal")
-      .reduce((s, i) => s + i.amount, 0);
+    const { monthly: monthlyBudget, weekly: weeklyBudget } = forecastBudgets(forecastItems);
     const perDay = forecastItems.length > 0 ? monthlyBudget + weeklyBudget : 0;
 
     setRecurrences((prev) => {
@@ -474,14 +472,7 @@ function Index() {
   /** Dados da aba totais: previsão do Menu por dia, para o mês selecionado. */
   const totalsData = useMemo(() => {
     const diaryDays = rows.list.filter((r) => r.totals.diarios > 0).length;
-    const monthlyBudget = forecastItems.reduce(
-      (sum, item) => sum + (item.period === "semanal" ? 0 : item.amount),
-      0,
-    );
-    const weeklyBudget = forecastItems.reduce(
-      (sum, item) => sum + (item.period === "semanal" ? item.amount : 0),
-      0,
-    );
+    const { monthly: monthlyBudget, weekly: weeklyBudget } = forecastBudgets(forecastItems);
     const forecastPerDay = dailyBudgetAmount(monthlyBudget, weeklyBudget, cursor.y, cursor.m);
     const nextMonth = iso(cursor.y, cursor.m + 1, 1);
     const savedTotal =
@@ -744,6 +735,11 @@ function Index() {
     const pendingTag = tagInput.trim().slice(0, 24);
     const cleanTags = (pendingTag && !tags.includes(pendingTag) ? [...tags, pendingTag] : tags).slice(0, 8);
     const horizonTransfer = formOrigin === "horizon" && kind === "economias";
+    const dailyCount = freq === "diario" ? dailyRepetitionCount(installments) : null;
+    if (freq === "diario" && dailyCount === null) {
+      setError("Informe quantas diárias com um número inteiro maior que zero.");
+      return;
+    }
 
     // edição de um lançamento existente: preserva tudo, aplica só o que mudou
     if (editTarget) {
@@ -753,7 +749,7 @@ function Index() {
       let dom: number[] = [];
       let dow: number[] = [];
       if (isRec) {
-        parcelas = infinite ? null : Math.floor(Number(installments));
+        parcelas = freq === "diario" ? dailyCount : infinite ? null : Math.floor(Number(installments));
         if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
           setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
           return;
@@ -859,7 +855,7 @@ function Index() {
 
     if (freq !== "unico") {
 
-      const parcelas = infinite ? null : Math.floor(Number(installments));
+      const parcelas = freq === "diario" ? dailyCount : infinite ? null : Math.floor(Number(installments));
       if (!infinite && (!Number.isFinite(parcelas) || (parcelas ?? 0) < 1)) {
         setError("Informe a quantidade de parcelas ou marque 'sem fim'.");
         return;
@@ -877,7 +873,7 @@ function Index() {
         {
           id: crypto.randomUUID(),
           kind,
-          name: debtName.trim() || label.trim() || KINDS.find((k) => k.key === kind)!.title,
+          name: debtName.trim() || label.trim() || (KINDS.find((k) => k.key === kind)?.title ?? "Outro"),
           label: label.trim() || (SUGGESTIONS[kind][0] ?? "Outro"),
           tags: cleanTags,
           amount: value,
@@ -1773,7 +1769,7 @@ function Index() {
             {windowMode === "info" && (
               <div className="rounded-2xl bg-card p-4">
                 <p className="text-sm leading-relaxed font-semibold text-foreground">
-                  Para adicionar ou retirar valores, use{" "}
+                  Para adicionar ou retirar novos valores, use{" "}
                   {windowKind === "saldos" ? (
                     <span className="font-bold tracking-wide text-primary">as outras colunas</span>
                   ) : windowKind === "economias" ? (
@@ -2050,13 +2046,16 @@ function Index() {
                   >
                     não repete
                   </button>
-                  <button
+                  <Button variant="ghost"
                     type="button"
-                    onClick={() => setFreq("diario")}
-                    className={chip(freq === "diario")}
+                    onClick={() => {
+                      setFreq("diario");
+                      setInfinite(false);
+                    }}
+                    className={`${chip(freq === "diario")} transition-none`}
                   >
                     diariamente
-                  </button>
+                  </Button>
                   <button
                     type="button"
                     onClick={() => setFreq("mensal")}
@@ -2074,12 +2073,16 @@ function Index() {
                 </div>
 
                 {freq !== "unico" && (
-                  <div className="space-y-1.5">
-                    <span className="text-xs font-medium text-muted-foreground">parcelas</span>
+                  <div className={freq === "diario" ? "mx-auto w-full max-w-48 space-y-1.5 text-center" : "space-y-1.5"}>
+                    <label htmlFor="repetition-count" className="text-xs font-medium text-muted-foreground">
+                      {freq === "diario" ? "quantas diárias" : "parcelas"}
+                    </label>
                     <div className="flex items-center gap-2">
                       <input
+                        id="repetition-count"
                         inputMode="numeric"
-                        value={infinite ? "" : installments}
+                        pattern="[0-9]*"
+                        value={freq !== "diario" && infinite ? "" : installments}
                         onFocus={() => {
                           if (infinite) {
                             setInfinite(false);
@@ -2091,15 +2094,15 @@ function Index() {
                           setInstallments(ev.target.value.replace(/\D/g, ""));
                         }}
                         placeholder="12"
-                        className={`h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 ${infinite ? "opacity-50" : ""}`}
+                        className={`h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 ${freq === "diario" ? "text-center" : infinite ? "opacity-50" : ""}`}
                       />
-                      <button
+                      {freq !== "diario" && <Button variant="ghost"
                         type="button"
                         onClick={() => setInfinite((v) => !v)}
                         className={`${chip(infinite)} !h-10 min-w-0 flex-1 !rounded-xl !px-3 !text-sm`}
                       >
                         sem fim
-                      </button>
+                      </Button>}
                     </div>
                   </div>
                 )}

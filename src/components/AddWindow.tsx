@@ -16,6 +16,7 @@ type Props = {
   onDeleteMonth?: (() => void) | undefined;
   deleteDayDisabled?: boolean | undefined;
   deleteMonthDisabled?: boolean | undefined;
+  onDeleteItem?: (() => void) | undefined;
   children: ReactNode;
 };
 
@@ -29,10 +30,29 @@ export function AddWindow({
   onDeleteMonth,
   deleteDayDisabled = false,
   deleteMonthDisabled = false,
+  onDeleteItem,
   children,
 }: Props) {
   const [menuOpen, setMenuOpen] = useState(false);
   const [confirming, setConfirming] = useState<string | null>(null);
+  const [itemConfirm, setItemConfirm] = useState(false);
+  const itemConfirmRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!itemConfirm) return;
+    const onDown = (e: PointerEvent) => {
+      if (!itemConfirmRef.current?.contains(e.target as Node)) setItemConfirm(false);
+    };
+    const onFocus = (e: FocusEvent) => {
+      if (!itemConfirmRef.current?.contains(e.target as Node)) setItemConfirm(false);
+    };
+    document.addEventListener("pointerdown", onDown, true);
+    document.addEventListener("focusin", onFocus, true);
+    return () => {
+      document.removeEventListener("pointerdown", onDown, true);
+      document.removeEventListener("focusin", onFocus, true);
+    };
+  }, [itemConfirm]);
   const triggerRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
@@ -170,14 +190,43 @@ export function AddWindow({
               )}
             </div>
           )}
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Fechar"
-            className="grid size-9 shrink-0 place-items-center rounded-full text-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
-          >
-            ×
-          </button>
+          {onDeleteItem ? (
+            <div ref={itemConfirmRef} className="relative shrink-0">
+              <button
+                type="button"
+                onClick={() => setItemConfirm((v) => !v)}
+                aria-expanded={itemConfirm}
+                className="h-8 shrink-0 rounded-lg border border-negative/40 bg-negative/10 px-2.5 text-xs font-semibold text-negative transition-colors hover:bg-negative/20"
+              >
+                apagar
+              </button>
+              {itemConfirm && (
+                <div className="absolute right-0 top-full z-50 mt-2 min-w-[11rem] overflow-hidden rounded-2xl border border-border bg-card p-1.5 shadow-xl">
+                  <p className="px-3 pt-1 pb-1.5 text-xs font-medium text-muted-foreground">tem certeza?</p>
+                  <DeleteOption
+                    label="tenho certeza"
+                    disabled={false}
+                    confirming={false}
+                    tone="negative"
+                    onSelect={() => {
+                      setItemConfirm(false);
+                      onDeleteItem();
+                      onClose();
+                    }}
+                  />
+                </div>
+              )}
+            </div>
+          ) : (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Fechar"
+              className="grid size-9 shrink-0 place-items-center rounded-full text-xl text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+            >
+              ×
+            </button>
+          )}
         </div>
 
         <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-5">{children}</div>

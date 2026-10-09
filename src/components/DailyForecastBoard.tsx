@@ -3,6 +3,7 @@ import { MoneyInput } from "@/components/MoneyInput";
 import { dailyBudgetAmount } from "@/lib/recurrence";
 import { useMemo, useState } from "react";
 import { AddWindow } from "@/components/AddWindow";
+import { forecastBudgets, parseWeeks } from "@/lib/forecast";
 
 export type ForecastItem = {
   id: string;
@@ -10,6 +11,8 @@ export type ForecastItem = {
   amount: number;
   period: "mensal" | "semanal";
   tags: string[];
+  /** Semanal: quantas semanas no mês. */
+  weeks?: number;
 };
 
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
@@ -31,23 +34,17 @@ export function DailyForecastBoard({
   onBack: () => void;
 }) {
   const [open, setOpen] = useState(false);
+  const [picking, setPicking] = useState(false);
   const [editing, setEditing] = useState<ForecastItem | null>(null);
   const [name, setName] = useState("");
   const [amount, setAmount] = useState("");
   const [period, setPeriod] = useState<"mensal" | "semanal">("mensal");
   const [tags, setTags] = useState<string[]>([]);
   const [tagInput, setTagInput] = useState("");
+  const [weeksInput, setWeeksInput] = useState("");
   const [error, setError] = useState<string | null>(null);
 
-  const monthly = useMemo(
-    () =>
-      items.reduce(
-        (s, i) => s + (i.period === "semanal" ? 0 : i.amount),
-        0,
-      ),
-    [items],
-  );
-  const weekly = items.reduce((s, i) => s + (i.period === "semanal" ? i.amount : 0), 0);
+  const { monthly, weekly } = useMemo(() => forecastBudgets(items), [items]);
   const divisor = new Date(year, month + 1, 0).getDate();
   const perDay = items.length > 0 ? dailyBudgetAmount(monthly, weekly, year, month) : 0;
 
@@ -58,6 +55,7 @@ export function DailyForecastBoard({
     setPeriod(item?.period ?? "mensal");
     setTags(item?.tags ?? []);
     setTagInput("");
+    setWeeksInput(item?.weeks ? String(item.weeks) : "");
     setError(null);
     setOpen(true);
   }
@@ -73,12 +71,16 @@ export function DailyForecastBoard({
     const value = Number(amount.replace(/\./g, "").replace(",", "."));
     if (!name.trim()) return setError("dê um nome pro gasto.");
     if (!Number.isFinite(value) || value <= 0) return setError("informe um valor maior que zero.");
+    const weeks = period === "semanal" ? parseWeeks(weeksInput) : null;
+    if (period === "semanal" && !weeks)
+      return setError("semanal: informe quantas semanas (de 1 a 5), ou escolha mensal.");
     onSave({
       id: editing?.id ?? crypto.randomUUID(),
       name: name.trim(),
       amount: value,
       period,
       tags,
+      ...(weeks ? { weeks } : {}),
     });
     setOpen(false);
   }
@@ -104,15 +106,47 @@ export function DailyForecastBoard({
 
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3">
         <p className="min-w-0 truncate text-sm text-muted-foreground">gastos mensais</p>
-        <button
-          type="button"
-          onClick={() => openForm()}
-          aria-label="adicionar gasto"
-          className="grid size-12 shrink-0 place-items-center rounded-full border-2 border-positive bg-positive text-xl text-positive-foreground shadow-sm transition-transform hover:scale-105 active:scale-95"
-        >
-          ＋
-        </button>
+        <div className="flex shrink-0 items-center gap-2">
+          <button
+            type="button"
+            onClick={() => setPicking(true)}
+            disabled={items.length === 0}
+            className="h-8 w-24 rounded-lg border border-negative/40 bg-negative/10 text-xs font-semibold text-foreground transition-colors hover:bg-negative/20 disabled:opacity-50"
+          >
+            editar
+          </button>
+          <button
+            type="button"
+            onClick={() => openForm()}
+            className="h-8 w-24 rounded-lg border border-positive/40 bg-positive/20 text-xs font-semibold text-foreground transition-colors hover:bg-positive/30"
+          >
+            adicionar
+          </button>
+        </div>
       </div>
+
+      {picking && (
+        <AddWindow title="editar" subtitle="escolha o gasto" onClose={() => setPicking(false)}>
+          <div className="divide-y divide-border overflow-hidden rounded-2xl border border-border bg-card">
+            {items.map((i) => (
+              <button
+                key={i.id}
+                type="button"
+                onClick={() => {
+                  setPicking(false);
+                  openForm(i);
+                }}
+                className="flex w-full items-center gap-3 px-4 py-3 text-left hover:bg-accent"
+              >
+                <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">{i.name}</span>
+                <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
+                  <FitMoney value={i.amount} />
+                </span>
+              </button>
+            ))}
+          </div>
+        </AddWindow>
+      )}
 
 
 
@@ -137,19 +171,16 @@ export function DailyForecastBoard({
                   </span>
                   <span className="block truncate text-xs text-muted-foreground">
                     {i.period}
+                    {i.period === "semanal" && i.weeks ? ` · ${i.weeks} ${i.weeks === 1 ? "semana" : "semanas"}` : ""}
                     {i.tags.length > 0 ? ` · ${i.tags.map((t) => `#${t}`).join(" ")}` : ""}
                   </span>
                 </button>
-                <span className="shrink-0 text-sm font-semibold tabular-nums text-foreground">
-                  <FitMoney value={i.amount} />
-                </span>
                 <button
                   type="button"
-                  onClick={() => onDelete(i.id)}
-                  aria-label={`apagar ${i.name}`}
-                  className="grid size-8 shrink-0 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+                  onClick={() => openForm(i)}
+                  className="shrink-0 text-sm font-semibold tabular-nums text-foreground"
                 >
-                  ×
+                  <FitMoney value={i.amount} />
                 </button>
               </div>
             ))}
@@ -189,6 +220,7 @@ export function DailyForecastBoard({
           title={editing ? "editar gasto" : "adicionar gasto"}
           subtitle="previsão gasto diário"
           onClose={() => setOpen(false)}
+          onDeleteItem={editing ? () => onDelete(editing.id) : undefined}
         >
           <div className="space-y-3">
             <label className="block space-y-1">
@@ -230,9 +262,16 @@ export function DailyForecastBoard({
                 ))}
               </div>
               {period === "semanal" && (
-                <p className="text-xs text-muted-foreground">
-                  itens semanais entram como valor ÷ 7 por dia.
-                </p>
+                <input
+                  value={weeksInput}
+                  onChange={(e) => {
+                    setWeeksInput(e.target.value);
+                    setError(null);
+                  }}
+                  placeholder="quantas semanas?"
+                  maxLength={20}
+                  className={`${field} mt-2`}
+                />
               )}
             </div>
 
