@@ -1,3 +1,4 @@
+import { cents } from "./money-format";
 export type ForecastLike = { amount: number; period: "mensal" | "semanal"; weeks?: number };
 
 const WORDS: Record<string, number> = {
@@ -23,9 +24,9 @@ export function forecastBudgets(items: ForecastLike[]) {
   let monthly = 0;
   let weekly = 0;
   for (const i of items) {
-    if (i.period !== "semanal") monthly += i.amount;
-    else if (i.weeks) monthly += i.amount * i.weeks;
-    else weekly += i.amount;
+    if (i.period !== "semanal") monthly = cents(monthly + i.amount);
+    else if (i.weeks) monthly = cents(monthly + i.amount * i.weeks);
+    else weekly = cents(weekly + i.amount);
   }
   return { monthly, weekly };
 }

@@ -1,3 +1,4 @@
+import { cents } from "./money-format";
 export type RecurrenceKind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
 
 /** A daily repetition always needs a finite, positive whole-number count. */
@@ -76,6 +77,20 @@ export function dailyBudgetAmount(monthly: number, weekly: number, y: number, m:
   return Math.floor((monthlyCents * 7 + weeklyCents * days) / (days * 7)) / 100;
 }
 
+/** Total exato do mês da previsão, em centavos. */
+function monthBudgetCents(monthly: number, weekly: number, y: number, m: number): number {
+  const days = lastDay(y, m);
+  return Math.floor((Math.round(monthly * 100) * 7 + Math.round(weekly * 100) * days) / 7);
+}
+
+/** Valor da previsão em um dia: valor por dia, e o último dia recebe os centavos que sobraram para fechar o mês. */
+export function dailyBudgetForDay(monthly: number, weekly: number, y: number, m: number, d: number): number {
+  const days = lastDay(y, m);
+  const rate = Math.round(dailyBudgetAmount(monthly, weekly, y, m) * 100);
+  if (d !== days) return rate / 100;
+  return (monthBudgetCents(monthly, weekly, y, m) - rate * (days - 1)) / 100;
+}
+
 /**
  * Valores de cada dia do mês da previsão, recalculando só para frente.
  * - Apagar dia D: o valor dele sai do total do mês; o que sobra (menos o já gasto antes de D)
@@ -92,7 +107,7 @@ export function forecastMonthAmounts(
 ): number[] {
   const days = lastDay(y, m);
   let rate = Math.round(dailyBudgetAmount(monthly, weekly, y, m) * 100);
-  let total = rate * days;
+  let total = monthBudgetCents(monthly, weekly, y, m);
   let spent = 0;
   const out: number[] = [];
   for (let d = 1; d <= days; d++) {
@@ -107,7 +122,7 @@ export function forecastMonthAmounts(
       value = Math.round(edit * 100);
       const left = days - d;
       if (left > 0) rate = Math.max(0, Math.floor((total - spent - value) / left));
-    } else value = rate;
+    } else value = d === days ? Math.max(0, total - spent) : rate;
     spent += value;
     out.push(value / 100);
   }
@@ -119,10 +134,8 @@ const amountOn = (rec: Recurrence, date: string) => {
   const { y, m, d } = parseIso(date);
   if (rec.dayEdits && Object.keys(rec.dayEdits).length > 0)
     return forecastMonthAmounts(rec.monthlyBudget ?? 0, rec.weeklyBudget ?? 0, rec.dayEdits, y, m)[d - 1] ?? 0;
-  return dailyBudgetAmount(rec.monthlyBudget ?? 0, rec.weeklyBudget ?? 0, y, m);
+  return dailyBudgetForDay(rec.monthlyBudget ?? 0, rec.weeklyBudget ?? 0, y, m, d);
 };
-
-const MAX_OCCURRENCES = 6000;
 
 /** All occurrences from startDate up to and including untilDate (ISO). */
 export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence[] {
@@ -183,7 +196,7 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
 
   if (rec.freq === "daily") {
     const day = new Date(start.y, start.m, start.d);
-    while (index < MAX_OCCURRENCES) {
+    for (;;) {
       const date = isoOf(day.getFullYear(), day.getMonth(), day.getDate());
       if (total == null && date > untilDate) break;
       if (push(date)) return out;
@@ -198,7 +211,7 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
     if (days.length === 0) return out;
     let y = start.y;
     let m = start.m;
-    while (index < MAX_OCCURRENCES) {
+    for (;;) {
       const first = isoOf(y, m, 1);
       if (total == null && first > untilDate) break;
       for (const day of days) {
@@ -226,7 +239,7 @@ export function occurrencesUntil(rec: Recurrence, untilDate: string): Occurrence
   if (weekdays.length === 0) return out;
   const cursor = new Date(start.y, start.m, start.d);
   cursor.setDate(cursor.getDate() - cursor.getDay()); // start of week (sunday)
-  while (index < MAX_OCCURRENCES) {
+  for (;;) {
     const weekStart = isoOf(cursor.getFullYear(), cursor.getMonth(), cursor.getDate());
     if (total == null && weekStart > untilDate) break;
     for (const wd of weekdays) {
@@ -251,7 +264,7 @@ export function occurrencesInMonth(rec: Recurrence, y: number, m: number): Occur
 export function sumBefore(rec: Recurrence, date: string): number {
   return occurrencesUntil(rec, date)
     .filter((o) => o.date < date)
-    .reduce((s, o) => s + o.amount, 0);
+    .reduce((s, o) => cents(s + o.amount), 0);
 }
 
 export const WEEKDAYS = [

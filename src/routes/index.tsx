@@ -11,6 +11,7 @@ import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
 import { TotalsBoard } from "@/components/TotalsBoard";
 import { TagsBoard, type TagRow } from "@/components/TagsBoard";
 import { forecastBudgets } from "@/lib/forecast";
+import { cents } from "@/lib/money-format";
 import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
 import {
@@ -19,6 +20,7 @@ import {
   weeklyRepetitionCount,
   weeklyRepetitionLimit,
   occurrencesInMonth,
+  occurrencesUntil,
   sumBefore,
   type Occurrence,
   type Recurrence,
@@ -160,7 +162,7 @@ const balanceSign = (kind: Kind, horizonTransfer?: boolean): 1 | -1 | 0 => {
 const signedTotal = (list: Entry[]) =>
   list.reduce((sum, e) => {
     const sign = balanceSign(e.kind, e.horizonTransfer);
-    return sum + sign * e.amount;
+    return cents(sum + sign * e.amount);
   }, 0);
 
 const GRID = "grid-cols-[56px_repeat(6,minmax(110px,1fr))]";
@@ -227,7 +229,7 @@ function Index() {
   const [debtName, setDebtName] = useState("");
   const [freq, setFreq] = useState<Freq>("unico");
   const [infinite, setInfinite] = useState(false);
-  const [installments, setInstallments] = useState("12");
+  const [installments, setInstallments] = useState("");
   const [daysOfMonth, setDaysOfMonth] = useState<number[]>([]);
 
 
@@ -396,7 +398,7 @@ function Index() {
       signedTotal(sorted.filter((e) => e.date < openingDate)) +
       recurrences.reduce((s, r) => {
         const sign = balanceSign(r.kind as Kind, r.horizonTransfer);
-        return s + sign * sumBefore(r, openingDate);
+        return cents(s + sign * sumBefore(r, openingDate));
       }, 0);
 
     const byDate = new Map<string, Occurrence[]>();
@@ -454,9 +456,9 @@ function Index() {
       for (const k of KINDS) {
         totals[k.key] = items
           .filter((it) => it.kind === k.key)
-          .reduce((s, it) => s + it.amount, 0);
+          .reduce((s, it) => cents(s + it.amount), 0);
       }
-      running += items.reduce((s, it) => s + it.sign * it.amount, 0);
+      running = cents(running + items.reduce((s, it) => cents(s + it.sign * it.amount), 0));
       return { day, date, totals, balance: running, items };
     });
 
@@ -465,7 +467,7 @@ function Index() {
 
   const monthTotals = useMemo(() => {
     const t = {} as Record<Kind, number>;
-    for (const k of KINDS) t[k.key] = rows.list.reduce((s, r) => s + r.totals[k.key], 0);
+    for (const k of KINDS) t[k.key] = rows.list.reduce((s, r) => cents(s + r.totals[k.key]), 0);
     return t;
   }, [rows]);
 
@@ -478,10 +480,10 @@ function Index() {
     const savedTotal =
       entries
         .filter((entry) => entry.kind === "economias" && entry.date < nextMonth)
-        .reduce((sum, entry) => sum + entry.amount, 0) +
+        .reduce((sum, entry) => cents(sum + entry.amount), 0) +
       recurrences
         .filter((recurrence) => recurrence.kind === "economias")
-        .reduce((sum, recurrence) => sum + sumBefore(recurrence, nextMonth), 0);
+        .reduce((sum, recurrence) => cents(sum + sumBefore(recurrence, nextMonth)), 0);
     return { totals: monthTotals, diaryDays, daysInMonth, forecastPerDay, savedTotal };
   }, [rows, monthTotals, cursor, daysInMonth, entries, recurrences, forecastItems]);
 
@@ -491,13 +493,19 @@ function Index() {
     const push = (tags: string[] | undefined, amount: number) => {
       for (const t of new Set(tags ?? [])) {
         const cur = map.get(t) ?? { total: 0, count: 0 };
-        map.set(t, { total: cur.total + amount, count: cur.count + 1 });
+        map.set(t, { total: cents(cur.total + amount), count: cur.count + 1 });
       }
     };
     for (const e of entries) push(e.tags, e.amount);
-    for (const r of recurrences) push(r.tags, r.amount);
+    // repetição: uma tag vale para todas as parcelas; sem fim conta até o mês aberto
+    const untilEnd = iso(cursor.y, cursor.m, new Date(cursor.y, cursor.m + 1, 0).getDate());
+    for (const r of recurrences) {
+      if (!r.tags?.length) continue;
+      const until = r.installments != null ? "9999-12-31" : untilEnd;
+      for (const o of occurrencesUntil(r, until)) push(r.tags, o.amount);
+    }
     return Array.from(map, ([tag, v]) => ({ tag, total: v.total, count: v.count }));
-  }, [entries, recurrences]);
+  }, [entries, recurrences, cursor]);
 
   /** Renomeia uma tag em todos os lançamentos (valores não mudam). */
   function renameTag(oldTag: string, newTag: string) {
@@ -541,13 +549,13 @@ function Index() {
         sorted
           .filter((e) => e.date < first)
           .reduce(
-            (sum, e) => sum + balanceSign(e.kind, e.horizonTransfer) * e.amount,
+            (sum, e) => cents(sum + balanceSign(e.kind, e.horizonTransfer) * e.amount),
             0,
           ) +
         recurrences.reduce((s, r) => {
           const k = KINDS.find((x) => x.key === r.kind);
           if (!k) return s;
-          return s + balanceSign(r.kind as Kind, r.horizonTransfer) * sumBefore(r, first);
+          return cents(s + balanceSign(r.kind as Kind, r.horizonTransfer) * sumBefore(r, first));
         }, 0);
 
       const byDate = new Map<string, number>();
@@ -557,7 +565,7 @@ function Index() {
           if (k) {
             byDate.set(
               e.date,
-              (byDate.get(e.date) ?? 0) + balanceSign(e.kind, e.horizonTransfer) * e.amount,
+              cents((byDate.get(e.date) ?? 0) + balanceSign(e.kind, e.horizonTransfer) * e.amount),
             );
           }
         }
@@ -568,8 +576,8 @@ function Index() {
           if (k) {
             byDate.set(
               o.date,
-              (byDate.get(o.date) ?? 0) +
-                balanceSign(o.kind as Kind, o.horizonTransfer) * o.amount,
+              cents((byDate.get(o.date) ?? 0) +
+                balanceSign(o.kind as Kind, o.horizonTransfer) * o.amount),
             );
           }
         }
@@ -578,7 +586,7 @@ function Index() {
       const days = Array.from({ length: total }, (_, idx) => {
         const day = idx + 1;
         const date = iso(y, m, day);
-        running += byDate.get(date) ?? 0;
+        running = cents(running + (byDate.get(date) ?? 0));
         return { day, date, balance: running, status: horizonStatusOf(running) };
       });
 
@@ -636,7 +644,7 @@ function Index() {
     setDebtName("");
     setFreq("unico");
     setInfinite(false);
-    setInstallments("12");
+    setInstallments("");
     setDaysOfMonth([]);
     setTags([]);
     setTagInput("");
@@ -665,7 +673,7 @@ function Index() {
       setInfinite(r.installments == null);
       setInstallments(r.freq === "weekly"
         ? r.installments == null ? "" : String(Math.min(r.installments, weeklyRepetitionLimit(r.startDate)))
-        : String(r.installments ?? 12));
+        : r.installments == null ? "" : String(r.installments));
       setDaysOfMonth(r.daysOfMonth ?? []);
       setEditTarget({ type: "rec", id: r.id });
       setActiveItemKey(item.key);
@@ -683,7 +691,7 @@ function Index() {
       setFormDate(en.date);
       setFreq("unico");
       setInfinite(false);
-      setInstallments("12");
+      setInstallments("");
       setDaysOfMonth([]);
       setEditTarget({ type: "entry", id: en.id });
       setActiveItemKey(item.key);
@@ -2125,7 +2133,7 @@ function Index() {
                           }
                           setInstallments(next);
                         }}
-                        placeholder={freq === "diario" ? "3" : freq === "semanal" ? "2" : "12"}
+                        placeholder={freq === "diario" ? "3" : freq === "semanal" ? "2" : "2"}
                         className={`h-10 min-w-0 flex-1 rounded-xl border border-input bg-background px-3 text-sm text-foreground outline-none focus:border-ring focus:ring-2 focus:ring-ring/30 ${finiteRepetition ? "text-center" : infinite ? "opacity-50" : ""}`}
                       />
                       {freq === "mensal" && <Button variant="ghost"

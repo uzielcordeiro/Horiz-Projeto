@@ -28,3 +28,9 @@ export function compactBrl(v: number, withSymbol = true): string {
   }
   return `${sign}${prefix}${Math.floor(abs).toLocaleString("pt-BR")}`;
 }
+
+/** Arredonda para centavos exatos (evita sobras tipo 0,0000001 em somas/subtrações). */
+export const cents = (v: number): number => {
+  const r = Math.round((v + Number.EPSILON * Math.sign(v)) * 100) / 100;
+  return r === 0 ? 0 : r;
+};

@@ -1,3 +1,4 @@
+import { cents } from "@/lib/money-format";
 import type React from "react";
 import { FitMoney } from "@/components/FitMoney";
 type Kind = "entradas" | "saidas" | "diarios" | "economias" | "cartao";
@@ -67,9 +68,9 @@ function Card({
 export function TotalsBoard({ data }: { data: TotalsData }) {
   const { totals, diaryDays, daysInMonth, forecastPerDay } = data;
 
-  const custoVida = totals.saidas + totals.diarios + totals.cartao;
+  const custoVida = cents(totals.saidas + totals.diarios + totals.cartao);
   // performance = saldo final do mês (igual ao resumo do calendário): desconta também a poupança
-  const performance = totals.entradas - custoVida - totals.economias;
+  const performance = cents(totals.entradas - custoVida - totals.economias);
   const economizado = totals.entradas > 0 ? (totals.economias / totals.entradas) * 100 : 0;
   const diarioMedio = diaryDays > 0 ? totals.diarios / diaryDays : 0;
 

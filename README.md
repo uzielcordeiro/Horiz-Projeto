@@ -1,4 +1,4 @@
-# Horizon Hub
+# The Master Hub
 
 https://github.com/uzielcordeiro/Horiz-Projeto-Pai-De-Todos
 
@@ -6,7 +6,7 @@ This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/95438d10-5d51-407c-85b8-22d1daf8a491).
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/966ceca4-33e2-4a87-99e4-9ad5b98b42bc).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.
