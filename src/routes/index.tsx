@@ -12,6 +12,8 @@ import { TotalsBoard } from "@/components/TotalsBoard";
 import { TagsBoard, type TagRow } from "@/components/TagsBoard";
 import { forecastBudgets } from "@/lib/forecast";
 import { cents } from "@/lib/money-format";
+import { monthItemLabel } from "@/lib/month-item-label";
+
 import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
 import {
@@ -192,7 +194,7 @@ function Index() {
   const [cursor, setCursor] = useState({ y: today.getFullYear(), m: today.getMonth() });
   const [selectedDay, setSelectedDay] = useState<number | null>(null);
   const [adding, setAdding] = useState(false);
-  const [windowMode, setWindowMode] = useState<"add" | "list" | "detail" | "edit" | "info">("add");
+  const [windowMode, setWindowMode] = useState<"add" | "month" | "list" | "detail" | "edit" | "info">("add");
   const [activeItemKey, setActiveItemKey] = useState<string | null>(null);
   const [forecastSpent, setForecastSpent] = useState("");
   const [forecastConfirm, setForecastConfirm] = useState(false);
@@ -1576,13 +1578,23 @@ function Index() {
                         setWindowKind(openingKind);
                         setEditTarget(null);
                         setFormOrigin("standard");
-                        setActiveItemKey(categoryItems.length === 1 ? categoryItems[0]?.key ?? null : null);
+                        const monthListKind =
+                          openingKind === "entradas" ||
+                          openingKind === "saidas" ||
+                          openingKind === "cartao";
+                        setActiveItemKey(
+                          !monthListKind && categoryItems.length === 1
+                            ? categoryItems[0]?.key ?? null
+                            : null,
+                        );
                         setWindowMode(
                           categoryItems.length === 0
                             ? "add"
-                            : categoryItems.length === 1
-                              ? "detail"
-                              : "list",
+                            : monthListKind
+                              ? "month"
+                              : categoryItems.length === 1
+                                ? "detail"
+                                : "list",
                         );
                         setAdding(true);
                       }}
@@ -1731,7 +1743,9 @@ function Index() {
           return (
           <AddWindow
             title={
-              windowMode === "add"
+              windowMode === "month"
+                ? (KINDS.find((item) => item.key === windowKind)?.title ?? "lançamentos")
+                : windowMode === "add"
                 ? `adicionar ${KINDS.find((item) => item.key === windowKind)?.title ?? "lançamento"}`
                 : windowMode === "list"
                   ? (KINDS.find((item) => item.key === windowKind)?.title ?? "lançamentos")
@@ -1745,6 +1759,11 @@ function Index() {
             subtitle={
               horizonAddWindow
                 ? undefined
+                : windowMode === "month"
+                  ? new Date(formDateParts.y, formDateParts.m, 1).toLocaleDateString("pt-BR", {
+                      month: "long",
+                      year: "numeric",
+                    })
                 : new Date(formDateParts.y, formDateParts.m, formDateParts.d).toLocaleDateString(
                     "pt-BR",
                     { day: "2-digit", month: "long", year: "numeric" },
@@ -1765,6 +1784,60 @@ function Index() {
             deleteActions={windowMode === "detail" ? detailDeleteActions : undefined}
             onClose={closeWindow}
           >
+            {windowMode === "month" && (
+              <div className="space-y-2 pt-2">
+
+                {rows.list
+                  .map((r) => ({
+                    row: r,
+                    items: r.items.filter(
+                      (it) => it.recurrenceId !== FORECAST_ID && it.kind === windowKind,
+                    ),
+                  }))
+                  .filter((g) => g.items.length > 0)
+                  .map(({ row: r, items }) => {
+                    const highlighted = r.day === formDateParts.d;
+                    return (
+                      <div
+                        key={r.date}
+                        className={`rounded-xl bg-card p-2 ${
+                          highlighted ? "ring-2 ring-primary" : ""
+                        }`}
+                      >
+                        <p
+                          className={`px-2 pt-1 pb-1 text-xs font-bold uppercase tracking-wide ${
+                            highlighted ? "text-primary" : "text-muted-foreground"
+                          }`}
+                        >
+                          dia {r.day}
+                        </p>
+                        {items.map((item) => (
+                          <button
+                            key={item.key}
+                            type="button"
+                            onClick={() => {
+                              setFormDate(item.date);
+                              setSelectedDay(r.day);
+                              setActiveItemKey(item.key);
+                              setWindowMode("detail");
+                            }}
+                            className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent"
+                          >
+                            <span className="truncate text-sm font-semibold text-foreground">
+                              {monthItemLabel(item.detail, Boolean(item.recurrenceId))}
+                            </span>
+                            <span className={`text-sm font-bold tabular-nums ${kindTone[item.kind]}`}>
+                              <FitMoney value={item.amount} />
+                            </span>
+                            <span aria-hidden className="text-muted-foreground">›</span>
+                          </button>
+                        ))}
+                      </div>
+                    );
+                  })}
+              </div>
+            )}
+
             {windowMode === "list" && (
               <div className="space-y-2">
                 {windowDayItems.map((item) => (
