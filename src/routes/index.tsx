@@ -7,12 +7,13 @@ import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { AppSidebar } from "@/components/AppSidebar";
 import { AddWindow } from "@/components/AddWindow";
 import { MonthCalendar } from "@/components/MonthCalendar";
-import { HorizonBoard, type HorizonMonth } from "@/components/HorizonBoard";
+import { HorizonBoard, type HorizonDay, type HorizonMonth } from "@/components/HorizonBoard";
 import { TotalsBoard } from "@/components/TotalsBoard";
 import { TagsBoard, type TagRow } from "@/components/TagsBoard";
 import { forecastBudgets } from "@/lib/forecast";
 import { cents } from "@/lib/money-format";
 import { monthItemLabel } from "@/lib/month-item-label";
+import { CalendarItemLabel } from "@/components/CalendarItemLabel";
 
 import { DailyForecastBoard, type ForecastItem } from "@/components/DailyForecastBoard";
 
@@ -129,8 +130,10 @@ const longDate = (isoDate: string) =>
 
 type Status = "positive" | "warning" | "negative";
 const statusOf = (b: number): Status => (b >= 1000 ? "positive" : b >= 0 ? "warning" : "negative");
-const horizonStatusOf = (b: number): "surplus" | Status =>
-  b >= 2000 ? "surplus" : statusOf(b);
+/** no Horizonte, R$ 1.000 negativo ou mais ganha o vermelho mais intenso (--negative-deep) */
+const horizonStatusOf = (b: number): HorizonDay["status"] =>
+  b <= -1000 ? "negativeDeep" : b >= 2000 ? "surplus" : statusOf(b);
+
 const saldoCell: Record<Status, string> = {
   positive: "bg-positive/15 text-positive",
   warning: "bg-warning/20 text-warning-foreground",
@@ -176,6 +179,7 @@ type DayItem = {
   sign: 1 | -1 | 0;
   amount: number;
   detail: string;
+  tags?: string[];
   entryId?: string;
   recurrenceId?: string;
   date: string;
@@ -430,6 +434,7 @@ function Index() {
             sign: balanceSign(e.kind, e.horizonTransfer),
             amount: e.amount,
             detail: e.label,
+            tags: e.tags ?? [],
             entryId: e.id,
             date,
             horizonTransfer: e.horizonTransfer === true,
@@ -447,6 +452,7 @@ function Index() {
               o.total ? ` · ${o.index}/${o.total}` : " · recorrente"
             }`,
             recurrenceId: o.recurrenceId,
+            tags: o.tags,
             date: o.date,
             horizonTransfer: o.horizonTransfer === true,
           } satisfies DayItem;
@@ -1823,9 +1829,11 @@ function Index() {
                             }}
                             className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-lg px-2 py-2 text-left transition-colors hover:bg-accent"
                           >
-                            <span className="truncate text-sm font-semibold text-foreground">
-                              {monthItemLabel(item.detail, Boolean(item.recurrenceId))}
-                            </span>
+                            <CalendarItemLabel
+                              label={monthItemLabel(item.detail, Boolean(item.recurrenceId))}
+                              kind={item.kind}
+                              tags={item.tags}
+                            />
                             <span className={`text-sm font-bold tabular-nums ${kindTone[item.kind]}`}>
                               <FitMoney value={item.amount} />
                             </span>
@@ -1850,7 +1858,7 @@ function Index() {
                     }}
                     className="grid w-full grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 rounded-xl bg-card p-4 text-left transition-colors hover:bg-accent"
                   >
-                    <span className="truncate text-sm font-semibold text-foreground">{item.detail}</span>
+                    <CalendarItemLabel label={item.detail} kind={item.kind} tags={item.tags} />
                     <span className={`text-sm font-bold tabular-nums ${kindTone[item.kind]}`}>
                       <FitMoney value={item.amount} />
                     </span>

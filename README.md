@@ -1,4 +1,4 @@
-# All-In-One Navigator
+# Core Project Hub
 
 https://github.com/uzielcordeiro/Horiz-Projeto-Pai-De-Todos
 
@@ -6,7 +6,7 @@ This project was built with [Lovable](https://lovable.dev).
 
 ## Build with Lovable
 
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/9ed7b15f-7e7f-4e7f-8283-24b5854f8d64).
+Continue developing this project in the [Lovable editor](https://lovable.dev/projects/5cc08ec5-473e-4bdc-88b5-7ee3e5fab198).
 
 - **Ship faster**: describe what you want to build and Lovable handles the code.
 - **Stay in sync**: every change made in Lovable is committed straight to this repository.

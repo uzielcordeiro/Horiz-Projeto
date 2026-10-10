@@ -1,7 +1,7 @@
 import { FitMoney } from "@/components/FitMoney";
 import { useEffect, useRef, type PointerEvent as ReactPointerEvent } from "react";
 
-type Status = "surplus" | "positive" | "warning" | "negative";
+type Status = "surplus" | "positive" | "warning" | "negative" | "negativeDeep";
 
 export type HorizonDay = {
   day: number;
@@ -22,15 +22,19 @@ const cell: Record<Status, string> = {
   positive: "bg-positive/20 text-positive",
   warning: "bg-warning/25 text-warning-foreground",
   negative: "bg-negative/20 text-negative",
+  negativeDeep: "bg-negative-deep/20 text-negative-deep",
 };
+
 
 /** mesmas cores dos dias do quadro, na ordem vermelho → amarelo → verde-claro → verde-escuro */
 const legend: { label: string; dotClass: string }[] = [
   { label: "negativo", dotClass: "bg-negative/20" },
+  { label: "R$ 1.000 negativo ou mais", dotClass: "bg-negative-deep/20" },
   { label: "entre R$ 0 e R$ 1.000", dotClass: "bg-warning/25" },
   { label: "R$ 1.000 até R$ 2.000", dotClass: "bg-positive/20" },
   { label: "acima de R$ 2.000", dotClass: "bg-surplus" },
 ];
+
 
 
 type Props = {

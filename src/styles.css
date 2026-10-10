@@ -67,6 +67,9 @@
   --color-warning-foreground: var(--warning-foreground);
   --color-negative: var(--negative);
   --color-negative-foreground: var(--negative-foreground);
+  --color-negative-deep: var(--negative-deep);
+  --color-negative-deep-foreground: var(--negative-deep-foreground);
+
   --color-horizon-marker: var(--horizon-marker);
   --font-sans: "Manrope", ui-sans-serif, system-ui, sans-serif;
   --font-display: "Sora", ui-sans-serif, system-ui, sans-serif;
@@ -181,6 +184,10 @@
   --warning-foreground: oklch(0.28 0.06 85);
   --negative: oklch(0.6 0.2 25);
   --negative-foreground: oklch(0.99 0.01 25);
+  /* 2% mais intenso que --negative: mesmo matiz, um passo adiante. Usado só no Horizonte. */
+  --negative-deep: oklch(0.575 0.204 23);
+  --negative-deep-foreground: oklch(0.99 0.01 23);
+
   --horizon-marker: oklch(0.6 0.13 25);
 }
 
